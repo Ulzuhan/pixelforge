@@ -5,6 +5,7 @@ import { join } from "path";
 import { randomBytes } from "crypto";
 import { execFile } from "child_process";
 import { promisify } from "util";
+import { requireAccount } from "@/lib/auth";
 
 const execFileAsync = promisify(execFile);
 
@@ -14,6 +15,11 @@ const PYTHON = join(process.env.HOME || "/home/ulzuhan", ".pixelforge-venv", "bi
 const PROCESSOR = join(process.cwd(), "python", "process.py");
 
 export async function POST(request: NextRequest) {
+  // Quitar un fondo ejecuta una red neuronal varios segundos: abierto a
+  // internet, esto es cómputo gratis para quien lo encuentre.
+  const unauthorized = await requireAccount();
+  if (unauthorized) return unauthorized;
+
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
