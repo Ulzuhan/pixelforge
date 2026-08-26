@@ -109,10 +109,10 @@ export async function POST(request: NextRequest) {
         "Content-Disposition": `inline; filename="${file.name.replace(/\.[^.]+$/, '')}.svg"`,
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Vectorize error:", error);
     return NextResponse.json(
-      { error: "Processing failed", details: error.message?.slice(0, 300) },
+      { error: "Processing failed", details: error instanceof Error ? error.message.slice(0, 300) : undefined },
       { status: 500 }
     );
   }

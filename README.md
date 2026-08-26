@@ -2,6 +2,8 @@
 
 **Image tools for creators.** Remove backgrounds, vectorize logos — self-hosted and private.
 
+[![CI](https://github.com/Ulzuhan/pixelforge/actions/workflows/ci.yml/badge.svg)](https://github.com/Ulzuhan/pixelforge/actions/workflows/ci.yml)
+
 ## Features
 - 🖼️ **Background Removal** — Powered by U2-Net, quality comparable to remove.bg
 - ✏️ **Vectorization** — Convert raster images to clean SVGs using vtracer

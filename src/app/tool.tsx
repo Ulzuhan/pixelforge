@@ -179,11 +179,11 @@ export function Tool({ email }: { email: string }) {
         resultFilename: mode === "removebg" ? `${baseName}-nobg.${ext}` : `${baseName}.${ext}`,
         resultType: isSvg ? "svg" : "png",
       });
-    } catch (err: any) {
+    } catch (err) {
       setProcessing((p) => ({
         ...p,
         loading: false,
-        error: err.message || "Processing failed",
+        error: err instanceof Error ? err.message : "Processing failed",
       }));
     }
   }, [inputFile, mode, model, alphaMatting, postProcess, colormode, hierarchical, curveMode, colorPrecision, filterSpeckle, cornerThreshold, spliceThreshold]);

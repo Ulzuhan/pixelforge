@@ -133,10 +133,10 @@ export async function POST(request: NextRequest) {
         "Content-Disposition": `inline; filename="${file.name.replace(/\.[^.]+$/, '')}-nobg.png"`,
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("RemoveBG error:", error);
     return NextResponse.json(
-      { error: "Processing failed", details: error.message?.slice(0, 300) },
+      { error: "Processing failed", details: error instanceof Error ? error.message.slice(0, 300) : undefined },
       { status: 500 }
     );
   }
