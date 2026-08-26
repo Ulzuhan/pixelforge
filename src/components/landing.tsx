@@ -13,7 +13,7 @@ import Link from "next/link";
  */
 export function Landing() {
   return (
-    <main className="flex-1">
+    <main className="kc-product-landing flex-1">
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <section className="mx-auto w-full max-w-5xl overflow-x-clip px-5 pt-12 pb-16 sm:pt-20 sm:pb-24">
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
@@ -61,7 +61,7 @@ export function Landing() {
             Two tools
           </h2>
 
-          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          <div className="kc-card-grid mt-8 grid gap-4 sm:grid-cols-2">
             <article className="rounded-xl border border-white/5 bg-surface/60 p-5">
               <p className="font-mono text-xs uppercase tracking-wider text-accent">
                 remove background
@@ -95,7 +95,7 @@ export function Landing() {
           Why not one of the free ones
         </h2>
 
-        <div className="mt-8 grid gap-x-10 gap-y-9 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="kc-card-grid mt-8 grid gap-x-10 gap-y-9 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map(({ icon, title, body }) => (
             <div key={title}>
               <div className="flex size-9 items-center justify-center rounded-xl bg-accent/10 text-lg">

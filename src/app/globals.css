@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+@import "./landing-polish.css";
 @import "./kaicorp.css";
 
 /* La paleta es la de Pixelforge y se queda como está: cambiarla era arriesgar

@@ -230,7 +230,7 @@ export function Tool({ email }: { email: string }) {
   }, [processing.resultUrl]);
 
   return (
-    <div className="flex-1 flex flex-col items-center px-4 py-8 sm:py-12 max-w-4xl mx-auto w-full">
+    <div className="kc-workspace flex-1 flex flex-col items-center px-4 py-8 sm:py-12 max-w-5xl mx-auto w-full">
       {/* Header */}
       <div className="w-full flex items-start justify-between gap-3 mb-8">
         <div className="min-w-0 flex-1 text-center sm:pl-[7.5rem]">
@@ -245,8 +245,9 @@ export function Tool({ email }: { email: string }) {
           <span className="hidden sm:inline max-w-[14ch] truncate" title={email}>{email}</span>
           <button
             onClick={async () => {
-              await fetch("/api/auth/logout", { method: "POST" });
-              window.location.href = "/";
+              const res = await fetch("/api/auth/logout", { method: "POST" });
+              const { next } = await res.json().catch(() => ({ next: "/" }));
+              window.location.href = next ?? "/";
             }}
             className="rounded-lg px-3 py-1.5 hover:bg-surface transition-colors"
           >
