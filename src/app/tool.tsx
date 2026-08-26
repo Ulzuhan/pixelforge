@@ -230,9 +230,9 @@ export function Tool({ email }: { email: string }) {
   }, [processing.resultUrl]);
 
   return (
-    <div className="kc-workspace flex-1 flex flex-col items-center px-4 py-8 sm:py-12 max-w-5xl mx-auto w-full">
+    <div className="kc-workspace pf-workspace flex-1 flex flex-col items-center px-4 py-8 sm:py-12 max-w-6xl mx-auto w-full">
       {/* Header */}
-      <div className="w-full flex items-start justify-between gap-3 mb-8">
+      <div className="pf-workspace-header w-full flex items-start justify-between gap-3 mb-8">
         <div className="min-w-0 flex-1 text-center sm:pl-[7.5rem]">
           <h1 className="text-4xl sm:text-5xl font-bold mb-2">
             <span className="text-accent">Pixel</span>forge
@@ -257,8 +257,10 @@ export function Tool({ email }: { email: string }) {
       </div>
 
       {/* Tool Mode Tabs */}
-      <div className="flex gap-2 mb-8 bg-surface rounded-xl p-1.5">
+      <div className="pf-mode-switch flex gap-2 mb-8 bg-surface rounded-xl p-1.5" role="tablist" aria-label="Image operation">
         <button
+          role="tab"
+          aria-selected={mode === "removebg"}
           onClick={() => { setMode("removebg"); reset(); }}
           className={`px-5 py-2.5 rounded-lg font-medium transition-all text-sm sm:text-base ${
             mode === "removebg" ? "tab-active" : "tab-inactive"
@@ -267,6 +269,8 @@ export function Tool({ email }: { email: string }) {
           🖼️ Remove BG
         </button>
         <button
+          role="tab"
+          aria-selected={mode === "vectorize"}
           onClick={() => { setMode("vectorize"); reset(); }}
           className={`px-5 py-2.5 rounded-lg font-medium transition-all text-sm sm:text-base ${
             mode === "vectorize" ? "tab-active" : "tab-inactive"
@@ -278,9 +282,9 @@ export function Tool({ email }: { email: string }) {
 
       {/* Upload Area */}
       {!processing.resultUrl && (
-        <div className="w-full mb-6">
+        <div className="pf-editor w-full mb-6">
           <div
-            className={`relative border-2 border-dashed rounded-2xl p-8 sm:p-10 text-center transition-all duration-200 cursor-pointer ${
+            className={`pf-dropzone relative border-2 border-dashed rounded-2xl p-8 sm:p-10 text-center transition-all duration-200 cursor-pointer ${
               isDragging
                 ? "border-accent bg-accent/10 scale-[1.02]"
                 : "border-border hover:border-accent/50 hover:bg-surface-light/50"
@@ -328,7 +332,7 @@ export function Tool({ email }: { email: string }) {
           </div>
 
           {/* Options Panel */}
-          <div className="mt-4 bg-surface border border-border rounded-xl p-4 space-y-4">
+          <div className="pf-controls mt-4 bg-surface border border-border rounded-xl p-4 space-y-4">
             {mode === "removebg" ? (
               <>
                 <div className="flex items-center gap-2 text-sm flex-wrap justify-center">
@@ -501,7 +505,7 @@ export function Tool({ email }: { email: string }) {
 
           {/* Process Button */}
           {inputFile && (
-            <div className="mt-4 flex justify-center">
+            <div className="pf-primary-action mt-4 flex justify-center">
               <button
                 onClick={processImage}
                 disabled={processing.loading}
@@ -514,7 +518,7 @@ export function Tool({ email }: { email: string }) {
 
           {/* Progress Bar */}
           {processing.loading && (
-            <div className="mt-4 space-y-2">
+            <div className="pf-process-status mt-4 space-y-2">
               <div className="w-full bg-surface-light rounded-full h-2.5 overflow-hidden">
                 <div
                   className="bg-accent h-full rounded-full transition-all duration-300"
@@ -533,7 +537,7 @@ export function Tool({ email }: { email: string }) {
 
           {/* Error */}
           {processing.error && (
-            <div className="mt-4 p-3 bg-danger/10 border border-danger/20 rounded-xl text-danger text-sm text-center">
+            <div className="pf-process-status mt-4 p-3 bg-danger/10 border border-danger/20 rounded-xl text-danger text-sm text-center">
               ❌ {processing.error}
             </div>
           )}
@@ -542,7 +546,7 @@ export function Tool({ email }: { email: string }) {
 
       {/* Result Preview */}
       {processing.resultUrl && (
-        <div className="w-full space-y-4 mb-8">
+        <div className="pf-result w-full space-y-4 mb-8">
           <div className="bg-surface border border-border rounded-2xl p-6 space-y-4">
             <div className="text-center">
               <p className="text-foreground font-semibold text-lg mb-1">

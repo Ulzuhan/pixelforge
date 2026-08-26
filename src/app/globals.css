@@ -1,7 +1,11 @@
 @import "tailwindcss";
 
-@import "./landing-polish.css";
+/* El orden importa y es el mismo en los cinco: primero las primitivas de marca,
+   luego la composición común, y al final lo propio de esta aplicación — que es
+   lo más específico y debe poder ganar. */
 @import "./kaicorp.css";
+@import "./landing-polish.css";
+@import "./pixelforge-workspace.css";
 
 /* La paleta es la de Pixelforge y se queda como está: cambiarla era arriesgar
    contrastes y diseño en toda la app sin ganar nada que el usuario note. Lo
