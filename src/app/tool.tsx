@@ -2,6 +2,19 @@
 
 import { useState, useCallback, useRef } from "react";
 
+/*
+ * Sobre los `<img>` de este fichero.
+ *
+ * Sus imágenes NO existen en el servidor: son `data:` (las crea FileReader al
+ * elegir un fichero) y `blob:` (las crea createObjectURL con el resultado).
+ * `next/image` no puede optimizar lo que no puede descargar, así que aquí
+ * `<img>` no es un descuido sino lo correcto.
+ *
+ * La regla se calla línea a línea y no en todo el fichero, para que un `<img>`
+ * nuevo sobre un fichero de verdad siga avisando.
+ */
+
+
 type ToolMode = "removebg" | "vectorize";
 
 interface ProcessingState {
@@ -288,8 +301,10 @@ export function Tool({ email }: { email: string }) {
               <div className="space-y-4">
                 <div className="inline-block max-w-xs max-h-48 overflow-hidden rounded-lg border border-border">
                   {mode === "removebg" ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- data:/blob:, ver la nota de arriba
                     <img src={inputPreview} alt="Preview" className="max-w-xs max-h-48 object-contain checkerboard rounded-lg" />
                   ) : (
+                    // eslint-disable-next-line @next/next/no-img-element -- data:/blob:, ver la nota de arriba
                     <img src={inputPreview} alt="Preview" className="max-w-xs max-h-48 object-contain rounded-lg" />
                   )}
                 </div>
@@ -540,6 +555,7 @@ export function Tool({ email }: { email: string }) {
                 <div className="flex-1 text-center">
                   <p className="text-muted text-xs mb-2 uppercase tracking-wide">Before</p>
                   <div className="inline-block rounded-lg border border-border overflow-hidden max-w-xs">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- data:/blob:, ver la nota de arriba */}
                     <img src={inputPreview} alt="Original" className="max-w-full max-h-64 object-contain" />
                   </div>
                 </div>
@@ -550,6 +566,7 @@ export function Tool({ email }: { email: string }) {
                 <div className={`inline-block rounded-lg border border-border overflow-hidden max-w-xs ${
                   processing.resultType === "png" ? "checkerboard" : "bg-white"
                 }`}>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- data:/blob:, ver la nota de arriba */}
                   <img
                     src={processing.resultUrl}
                     alt="Result"
