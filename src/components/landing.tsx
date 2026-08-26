@@ -46,7 +46,7 @@ export function Landing() {
               </Link>
             </div>
             <p className="mt-3 text-xs text-muted">
-              Accounts are approved by hand. Ask and you get let in.
+              Accounts are approved by hand. Ask and you get let in. Already have a KaiCorp Labs account? Use the same button — it asks for access to this one.
             </p>
           </div>
 
