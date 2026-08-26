@@ -1,20 +1,16 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { KaiCorpFooter } from "@/components/kaicorp-footer";
+import { KaiCorpHeader } from "@/components/kaicorp-header";
 
 // Force dynamic rendering — prevents aggressive caching by Cloudflare
 export const dynamic = "force-dynamic";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// La marca: display para titulares, sans para lectura, mono para etiquetas.
+const display = Space_Grotesk({ variable: "--font-display", weight: ["500", "700"], subsets: ["latin"] });
+const sans = Inter({ variable: "--font-sans", weight: ["400", "500"], subsets: ["latin"] });
+const mono = JetBrains_Mono({ variable: "--font-mono", weight: ["400", "500"], subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Pixelforge — Image Tools",
@@ -27,10 +23,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-background text-foreground">
+        <KaiCorpHeader app="Pixelforge" />
         {children}
-        <KaiCorpFooter />
+        <KaiCorpFooter current="pixelforge" />
       </body>
     </html>
   );
