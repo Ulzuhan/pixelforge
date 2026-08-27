@@ -52,6 +52,7 @@ are not.
 | `PIXELFORGE_OIDC_REDIRECT_URI` | Must match one of the URIs registered in the provider. |
 | `PIXELFORGE_OIDC_PUBLIC_BASE` | The provider as the browser sees it. |
 | `PIXELFORGE_OIDC_INTERNAL_BASE` | The provider as this server sees it — redeeming the authorization code never leaves the internal network. |
+| `PIXELFORGE_PUBLIC_HOST` | Public hostname the origin check compares against. Unset, the incoming `Host` is used, which is right behind a tunnel that preserves it — verified. Only needed behind a proxy that rewrites `Host` with an internal name. |
 | `PIXELFORGE_SESSION_TTL_HOURS` | Session lifetime, clamped to 1–24 h; default 12. |
 | `PIXELFORGE_PYTHON` | Absolute path to the audited Python interpreter. |
 | `PIXELFORGE_TMP_DIR` | Private temporary workspace; defaults to `.pixelforge-tmp`. |
@@ -77,7 +78,6 @@ spends real CPU and real memory on a request.
 | `PIXELFORGE_MAX_JOBS` | `2` | Python processes running at once |
 | `PIXELFORGE_MAX_QUEUE` | `6` | Requests waiting for a turn; beyond that, 503 with `Retry-After` |
 | `PIXELFORGE_MAX_REQUESTS_PER_HOUR` | `30` | Requests admitted per signed identity and client IP each hour |
-| `PIXELFORGE_PUBLIC_HOST` | Nombre público con el que se comprueba el origen de una petición. Sin poner se usa el `Host` que llega, que es lo correcto detrás de un túnel que lo conserva. Sólo hace falta si el proxy lo reescribe con un nombre interno. |
 
 The pixel budget is not the same thing as the 50 MB upload cap, and that difference
 is the whole point: a flat-colour 8000×8000 PNG is 197 KB on disk and 64 million
