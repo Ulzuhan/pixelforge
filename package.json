@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "./scripts/run-suites.sh",
+    "test:auth": "node scripts/test-auth.mjs",
+    "test:process": "node scripts/test-process.mjs"
   },
   "dependencies": {
     "next": "^16.2.12",

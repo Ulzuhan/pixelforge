@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { pareceImagen } from "@/lib/imagen";
+import { ColaLlena, conTurno } from "@/lib/turnos";
 import { writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import { join } from "path";
@@ -148,8 +150,16 @@ export async function POST(request: NextRequest) {
     const inputPath = join(workDir, `input${ext}`);
     const outputPath = join(workDir, "output.png");
 
-    // Save input file
     const buffer = Buffer.from(await file.arrayBuffer());
+    // El tipo declarado y el nombre los escribe quien sube; los primeros bytes,
+    // no. Descartar aquí lo que no es una imagen ahorra arrancar un Python
+    // entero para acabar en un error —1,3 segundos por fichero basura—.
+    if (!pareceImagen(buffer)) {
+      return NextResponse.json(
+        { error: "That file is not an image." },
+        { status: 400 }
+      );
+    }
     await writeFile(inputPath, buffer);
 
     // Build rembg arguments
@@ -162,10 +172,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Run rembg via Python subprocess
-    const { stderr } = await execFileAsync(PYTHON, args, {
-      timeout: 180000, // 3min for CPU processing
-      maxBuffer: 10 * 1024 * 1024,
-    });
+    // Por turnos: cada uno de estos arranca un Python que puede tardar minutos y
+    // comerse más de un giga, y esta máquina tiene cuatro núcleos y otros cuatro
+    // servicios encima. Sin cola, seis peticiones eran seis procesos a la vez.
+    const { stderr } = await conTurno(() =>
+      execFileAsync(PYTHON, args, {
+        timeout: 180000,
+        maxBuffer: 10 * 1024 * 1024,
+      })
+    );
 
     if (!existsSync(outputPath)) {
       console.error("rembg stderr:", stderr);
@@ -192,6 +207,31 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
+    // La cola llena no es un fallo del servidor: es que ahora mismo no hay sitio.
+    // Se dice cuándo volver, en vez de un 500 que no explica nada.
+    if (error instanceof ColaLlena) {
+      return NextResponse.json(
+        { error: "The machine is busy right now. Try again in a moment." },
+        { status: 503, headers: { "Retry-After": "30" } }
+      );
+    }
+    // Una imagen que pide más memoria de la que se le presta tampoco es un fallo
+    // del servidor: es una petición que no se acepta, y merece decirlo claro. El
+    // límite de 50 MB de arriba es de fichero, y un PNG de color plano de
+    // 8000x8000 pesa 197 KB y son 64 millones de píxeles.
+    const salida = String((error as { stderr?: string })?.stderr ?? "");
+    if (salida.includes("PIXELFORGE_NO_ES_UNA_IMAGEN")) {
+      return NextResponse.json(
+        { error: "That file is not an image." },
+        { status: 400 }
+      );
+    }
+    if (salida.includes("PIXELFORGE_IMAGEN_DEMASIADO_GRANDE")) {
+      return NextResponse.json(
+        { error: "Image has too many pixels. Max 40 megapixels." },
+        { status: 413 }
+      );
+    }
     console.error("RemoveBG error:", error);
     return NextResponse.json(
       { error: "Processing failed" },

@@ -16,6 +16,12 @@ export function proxy() {
   response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
   response.headers.set("Pragma", "no-cache");
   response.headers.set("Expires", "0");
+  // Lo que sale de aquí son imágenes y un SVG, y un SVG que el navegador decida
+  // tratar como documento es otra cosa muy distinta a una imagen. La CSP y el
+  // X-Frame-Options los pone Cloudflare en el borde, pero esta no la ponía nadie
+  // —ni la aplicación ni la regla de transformación—, así que va aquí.
+  response.headers.set("X-Content-Type-Options", "nosniff");
+
   // Sin estas, Cloudflare interpreta las marcas de ISR de Next y cachea igual.
   response.headers.delete("x-nextjs-cache");
   response.headers.delete("x-nextjs-prerender");

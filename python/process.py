@@ -11,15 +11,52 @@ Usage:
 """
 
 import argparse
-import sys
 import os
+import sys
+
+# ── Presupuesto de píxeles ────────────────────────────────────────────────
+#
+# El límite de 50 MB que pone la ruta es de FICHERO, no de imagen, y esas dos
+# cosas no se parecen: un PNG de color plano de 8000x8000 ocupa 197 KB en disco y
+# 64 millones de píxeles en memoria. Medido contra este mismo servicio: esos 197
+# KB hacían que Python llegara a 2,1 GB de residente y once segundos de CPU
+# quitando el fondo, y a 1,1 GB vectorizando. Unas diez mil veces lo que pesa lo
+# que se sube.
+#
+# `Image.open` sólo lee la cabecera, así que preguntar el tamaño no cuesta nada:
+# la comprobación va antes de descodificar y antes de importar rembg, que es lo
+# lento. Cuarenta megapíxeles dejan pasar cualquier foto de móvil de hoy.
+MAX_PIXELS = int(os.environ.get("PIXELFORGE_MAX_PIXELS", 40_000_000))
+
+# Marcador para que la ruta sepa distinguir esto de un fallo cualquiera y conteste
+# 413 en vez de 500. Va por stderr, que es lo único que cruza.
+MARCA_TAMANO = "PIXELFORGE_IMAGEN_DEMASIADO_GRANDE"
+MARCA_NO_IMAGEN = "PIXELFORGE_NO_ES_UNA_IMAGEN"
+
+
+def abrir_acotada(ruta):
+    """La imagen, o un fallo limpio si pide más memoria de la que se le presta."""
+    from PIL import Image
+
+    try:
+        img = Image.open(ruta)
+        ancho, alto = img.size
+    except Exception:
+        # Que un fichero no se pueda abrir no es un fallo del servidor: es que lo
+        # que han subido no era una imagen. La ruta lo traduce a 400.
+        print(MARCA_NO_IMAGEN, file=sys.stderr)
+        sys.exit(3)
+    if ancho * alto > MAX_PIXELS:
+        print(f"{MARCA_TAMANO} {ancho}x{alto}", file=sys.stderr)
+        sys.exit(2)
+    return img
 
 
 def cmd_removebg(args: argparse.Namespace) -> None:
     from rembg import remove, new_session
     from PIL import Image
 
-    input_img = Image.open(args.input)
+    input_img = abrir_acotada(args.input)
 
     # Convert to RGB first if needed (rembg works best with RGB input)
     if input_img.mode == "RGBA":
@@ -70,7 +107,7 @@ def cmd_removebg(args: argparse.Namespace) -> None:
 def cmd_vectorize(args: argparse.Namespace) -> None:
     from PIL import Image
 
-    input_img = Image.open(args.input)
+    input_img = abrir_acotada(args.input)
 
     # Pre-process: resize if the image is too large (vtracer struggles with huge images)
     max_dim = 2048
