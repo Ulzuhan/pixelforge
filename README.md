@@ -5,6 +5,10 @@ normally cost a subscription and hand your images to somebody else's server. Thi
 on your machine and keeps nothing.
 
 [![CI](https://github.com/Ulzuhan/pixelforge/actions/workflows/ci.yml/badge.svg)](https://github.com/Ulzuhan/pixelforge/actions/workflows/ci.yml)
+[![Container image](https://github.com/Ulzuhan/pixelforge/actions/workflows/docker.yml/badge.svg)](https://github.com/Ulzuhan/pixelforge/pkgs/container/pixelforge)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+![Background removal, before and after, running on your own machine — one image in, one image out, nothing stored](assets/screenshot.jpg)
 
 - **Background removal** — [rembg](https://github.com/danielgatis/rembg), with four
   models to pick from: `isnet-general-use` (the default, most precise), `u2net` (best
