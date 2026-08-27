@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { pareceImagen } from "@/lib/imagen";
+import { megapixeles, pareceImagen } from "@/lib/imagen";
 import { ColaLlena, conTurno } from "@/lib/turnos";
 import { writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
@@ -252,7 +252,7 @@ export async function POST(request: NextRequest) {
     }
     if (salida.includes("PIXELFORGE_IMAGEN_DEMASIADO_GRANDE")) {
       return NextResponse.json(
-        { error: "Image has too many pixels. Max 40 megapixels." },
+        { error: `Image has too many pixels. Max ${megapixeles()} megapixels.` },
         { status: 413 }
       );
     }

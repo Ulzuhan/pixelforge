@@ -62,6 +62,48 @@ are not.
 | `POST /api/removebg` | account | Image in, cut-out PNG out. Takes `model`, `alphaMatting`, `postProcess`. |
 | `POST /api/vectorize` | account | Image in, SVG out. Takes the vtracer quality parameters. |
 
+## Limits
+
+Two of them, and they exist for the same reason: this app is the only one here that
+spends real CPU and real memory on a request.
+
+| Variable | Default | What it bounds |
+|---|---|---|
+| `PIXELFORGE_MAX_PIXELS` | `40000000` | Pixels in the uploaded image, checked from the header before decoding |
+| `PIXELFORGE_MAX_JOBS` | `2` | Python processes running at once |
+| `PIXELFORGE_MAX_QUEUE` | `6` | Requests waiting for a turn; beyond that, 503 with `Retry-After` |
+
+The pixel budget is not the same thing as the 50 MB upload cap, and that difference
+is the whole point: a flat-colour 8000×8000 PNG is 197 KB on disk and 64 million
+pixels in memory. Measured against this service before the budget existed, those
+197 KB took **2.1 GB of resident memory and eleven seconds of CPU** to remove a
+background. Forty megapixels lets any phone photo of today through.
+
+The queue matters for the same reason. Six simultaneous requests used to start six
+Python processes — measured, each going from 5 to 29 seconds fighting over this
+machine's four cores. With large images that stops being slowness and becomes the
+machine's memory, and what runs out of it is not just this service: it is the other
+four and the identity provider, which live on the same box.
+
+## Tests
+
+No test framework. Two suites, each against a server the script starts itself:
+
+```bash
+npm run build
+./scripts/run-suites.sh          # both
+./scripts/run-suites.sh auth     # one
+```
+
+`test-auth` covers the door — a legitimate session gets in, twelve forged ones do
+not, and `?next=` cannot be pointed off-site. `test-process` covers what gets
+uploaded and what it costs: the pixel budget, the queue, files that are not images,
+the vtracer settings, and the filename that comes back in `Content-Disposition`.
+
+There is no local sign-in — Authentik owns identity — so the suites mint their
+session cookie with the same secret the test server runs with. It is the only way
+to exercise a route without standing up an identity provider for every run.
+
 ## Stack
 
 Next.js 16 · React 19 · Tailwind CSS v4 · TypeScript, with `rembg` + `vtracer` + Pillow

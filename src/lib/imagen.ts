@@ -40,3 +40,15 @@ export function pareceImagen(datos: Buffer): boolean {
 
   return false;
 }
+
+/**
+ * El presupuesto de píxeles, para poder decirlo en el mensaje de error.
+ *
+ * Lo aplica el proceso de Python, que es quien puede mirar la cabecera de la
+ * imagen sin descodificarla. Se lee aquí también porque el mensaje llevaba el
+ * número escrito a pelo, y en cuanto alguien cambiase la variable el mensaje
+ * habría empezado a mentir.
+ */
+export const MAX_PIXELS = Number(process.env.PIXELFORGE_MAX_PIXELS || 40_000_000);
+
+export const megapixeles = () => Math.round(MAX_PIXELS / 1_000_000);
