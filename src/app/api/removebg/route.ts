@@ -16,23 +16,43 @@ const PYTHON = join(process.env.HOME || "/home/ulzuhan", ".pixelforge-venv", "bi
 const PROCESSOR = join(process.cwd(), "python", "process.py");
 
 /**
- * Nombre seguro para `Content-Disposition`.
+ * Cabecera `Content-Disposition` completa, con el nombre que puso quien subió
+ * el fichero.
  *
- * El nombre lo pone quien sube el fichero. Con comillas dentro, la cabecera
- * salía partida —`filename="foto"rara.png"`, que el navegador lee como `foto`—
- * y con un salto de línea el runtime rechazaba la cabecera entera y la petición
- * moría con un 500. No llega a ser inyección (Node valida el valor), pero son
- * dos formas de romperlo desde fuera.
+ * Tres formas de romperla desde fuera, las tres vistas en pruebas:
  *
- * Se queda solo con el nombre base, sin rutas ni caracteres de control.
+ *   comillas   `filename="foto"rara.png"` sale partida y el navegador lee
+ *              solo `foto`.
+ *   control    un salto de línea hace que el runtime rechace la cabecera y la
+ *              petición muera con un 500. (No es inyección: Node valida.)
+ *   no ASCII   una cabecera HTTP solo admite bytes 0–255. `diseño.png` colaba
+ *              porque la eñe cabe en Latin-1, pero `日本語.png` o un emoji
+ *              **devolvían 500**. Nombres así son de lo más normal.
+ *
+ * La solución es la del estándar (RFC 6266): `filename=` con un respaldo en
+ * ASCII puro, y `filename*=UTF-8''…` con el nombre real percent-encoded, que
+ * es lo que usan todos los navegadores actuales. Así el usuario recibe su
+ * fichero con su nombre y la cabecera nunca es inválida.
  */
-function nombreSeguro(nombre: string, sufijo: string): string {
-  const base = nombre
-    .replace(/\.[^.]+$/, "")
-    .replace(/[\u0000-\u001F\u007F"\\/]/g, "_")
-    .trim()
-    .slice(0, 80);
-  return `${base || "image"}${sufijo}`;
+function cabeceraNombre(nombre: string, sufijo: string): string {
+  const base =
+    nombre
+      .replace(/\.[^.]+$/, "")
+      .replace(/[\u0000-\u001F\u007F"\\/]/g, "_")
+      .trim()
+      .slice(0, 80) || "image";
+
+  // Respaldo: solo ASCII imprimible, que es lo único seguro en `filename=`.
+  const ascii = base.replace(/[^\u0020-\u007E]/g, "_") + sufijo;
+
+  // Nombre real. `encodeURIComponent` deja pasar !'()* , que no son attr-char
+  // válidos en RFC 5987, así que se codifican también.
+  const utf8 = encodeURIComponent(base + sufijo).replace(
+    /['()!*]/g,
+    (c) => "%" + c.charCodeAt(0).toString(16).toUpperCase()
+  );
+
+  return `inline; filename="${ascii}"; filename*=UTF-8''${utf8}`;
 }
 
 /**
@@ -168,7 +188,7 @@ export async function POST(request: NextRequest) {
       status: 200,
       headers: {
         "Content-Type": "image/png",
-        "Content-Disposition": `inline; filename="${nombreSeguro(file.name, "-nobg.png")}"`,
+        "Content-Disposition": cabeceraNombre(file.name, "-nobg.png"),
       },
     });
   } catch (error) {
