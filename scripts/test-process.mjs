@@ -6,7 +6,7 @@
  * detalles —el tamaño de lo que entra, cuántas peticiones se atienden a la vez—
  * en la diferencia entre un servicio y una forma cómoda de tumbar la máquina.
  */
-import { check, nota, png, procesar, resumen, sesion } from "./comun.mjs";
+import { BASE, check, nota, png, procesar, resumen, sesion } from "./comun.mjs";
 
 const cookie = sesion();
 const PNG = png(40, 30);
@@ -124,6 +124,61 @@ check(
   (await procesar("/api/vectorize", { cookie, datos: png(400, 300) })).status,
   200
 );
+
+console.log("\nLos ajustes de vectorizar");
+// Los diez ajustes iban tal cual a `argparse`, que con un valor que no sabe leer
+// sale con error y deja aquí un 500. Medido antes: de diez valores raros, nueve
+// daban 500. No hay inyección de comandos —los argumentos van en array y sin
+// shell— pero un 500 no le dice nada a quien lo recibe, y son rangos que el
+// propio script documenta.
+for (const [que, campos] of [
+  ["texto donde va un número", { filterSpeckle: "abc" }],
+  ["un negativo", { filterSpeckle: "-5" }],
+  ["algo que parece una opción", { filterSpeckle: "--alpha-matting" }],
+  ["un valor fuera de rango", { colorPrecision: "999999999" }],
+  ["un decimal donde va un entero", { cornerThreshold: "3.5" }],
+  ["notación científica", { layerDifference: "1e9" }],
+  ["un colormode inventado", { colormode: "arcoiris" }],
+  ["un hierarchical inventado", { hierarchical: "loquesea" }],
+  ["un curveMode inventado", { curveMode: "zigzag" }],
+]) {
+  const r = await procesar("/api/vectorize", { cookie, datos: PNG, campos });
+  check(`${que} da 400, no 500`, r.status, 400);
+}
+// Un ajuste en blanco significa "usa el de por defecto", que es como se comportaba
+// antes y como lo usa la interfaz.
+check(
+  "un ajuste en blanco usa el de por defecto",
+  (await procesar("/api/vectorize", { cookie, datos: PNG, campos: { pathPrecision: " " } })).status,
+  200
+);
+// Y los del rango bueno siguen entrando: acotar de más rompe la aplicación.
+check(
+  "los valores buenos siguen valiendo",
+  (await procesar("/api/vectorize", { cookie, datos: PNG, campos: { colormode: "binary", curveMode: "polygon", colorPrecision: "8", cornerThreshold: "120" } })).status,
+  200
+);
+
+console.log("\nLa vuelta del proveedor de identidad");
+// El `state` es lo único que impide que alguien nos haga abrir sesión con SU
+// código: si no casa con el que emitimos, no hay sesión que valga.
+for (const [que, cola, galleta] of [
+  ["sin nada", "", null],
+  ["sólo con el código", "?code=inventado", null],
+  ["con código y state pero sin cookie", "?code=x&state=y", null],
+  [
+    "con el state de la URL distinto al de la cookie",
+    "?code=x&state=elmio",
+    `pixelforge_oidc=${encodeURIComponent(JSON.stringify({ verifier: "v", state: "otro", next: "/" }))}`,
+  ],
+]) {
+  const r = await fetch(`${BASE}/api/auth/callback${cola}`, {
+    redirect: "manual",
+    ...(galleta ? { headers: { cookie: galleta } } : {}),
+  });
+  const abre = /pixelforge_session=[^;]{10,}/.test(r.headers.get("set-cookie") ?? "");
+  check(`no abre sesión ${que}`, abre, false);
+}
 
 console.log("\nEl nombre del fichero que vuelve");
 // Una cabecera HTTP sólo admite bytes 0–255, así que un nombre con acentos o con

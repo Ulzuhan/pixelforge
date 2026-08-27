@@ -96,16 +96,53 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
-    const colormode = (formData.get("colormode") as string) || "color";
-    const hierarchical = (formData.get("hierarchical") as string) || "stacked";
-    const curveMode = (formData.get("curveMode") as string) || "spline";
-    const filterSpeckle = formData.get("filterSpeckle") as string || "4";
-    const colorPrecision = formData.get("colorPrecision") as string || "6";
-    const layerDifference = formData.get("layerDifference") as string || "16";
-    const cornerThreshold = formData.get("cornerThreshold") as string || "60";
-    const lengthThreshold = formData.get("lengthThreshold") as string || "4";
-    const spliceThreshold = formData.get("spliceThreshold") as string || "45";
-    const pathPrecision = formData.get("pathPrecision") as string || "8";
+    // Los diez ajustes van tal cual a `argparse`, que con un valor que no sabe
+    // leer sale con error y deja aquí un 500. Medido: de diez valores raros
+    // —texto donde va un número, un negativo, algo que parece una opción, un
+    // decimal, un modo inventado— nueve daban 500. Un ajuste mal escrito es un
+    // error de quien llama, no del servidor, y son rangos que el propio script
+    // documenta. No hay inyección de comandos por aquí —los argumentos van en
+    // array y sin shell— pero un 500 no dice nada a quien lo recibe.
+    const opcion = (nombre: string, permitidos: string[]) => {
+      const crudo = formData.get(nombre);
+      if (crudo === null || crudo === "") return permitidos[0];
+      return permitidos.includes(String(crudo)) ? String(crudo) : null;
+    };
+    const entero = (nombre: string, min: number, max: number, porDefecto: number) => {
+      const crudo = formData.get(nombre);
+      if (crudo === null || String(crudo).trim() === "") return String(porDefecto);
+      const n = Number(String(crudo).trim());
+      if (!Number.isInteger(n) || n < min || n > max) return null;
+      return String(n);
+    };
+
+    const colormode = opcion("colormode", ["color", "binary"]);
+    const hierarchical = opcion("hierarchical", ["stacked", "cutout"]);
+    const curveMode = opcion("curveMode", ["spline", "polygon", "pixel"]);
+    const filterSpeckle = entero("filterSpeckle", 0, 64, 4);
+    const colorPrecision = entero("colorPrecision", 1, 12, 6);
+    const layerDifference = entero("layerDifference", 1, 64, 16);
+    const cornerThreshold = entero("cornerThreshold", 1, 180, 60);
+    const lengthThreshold = entero("lengthThreshold", 1, 64, 4);
+    const spliceThreshold = entero("spliceThreshold", 1, 90, 45);
+    const pathPrecision = entero("pathPrecision", 1, 12, 8);
+
+    const ajustes = {
+      colormode, hierarchical, curveMode, filterSpeckle, colorPrecision,
+      layerDifference, cornerThreshold, lengthThreshold, spliceThreshold,
+      pathPrecision,
+    };
+    const malo = Object.entries(ajustes).find(([, valor]) => valor === null);
+    if (malo) {
+      return NextResponse.json(
+        { error: `Invalid value for ${malo[0]}.` },
+        { status: 400 }
+      );
+    }
+    // Comprobado arriba que ninguno es null, pero el compilador no puede saberlo
+    // mirando `ajustes` en bloque: se dice una vez aquí, y lo de abajo se
+    // construye desde esta copia y no desde las variables sueltas.
+    const ok = ajustes as { [K in keyof typeof ajustes]: string };
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -149,16 +186,16 @@ export async function POST(request: NextRequest) {
     // Build vtracer arguments with all quality parameters
     const args = [
       PROCESSOR, "vectorize", inputPath, outputPath,
-      "--colormode", colormode,
-      "--hierarchical", hierarchical,
-      "--curve-mode", curveMode,
-      "--filter-speckle", filterSpeckle,
-      "--color-precision", colorPrecision,
-      "--layer-difference", layerDifference,
-      "--corner-threshold", cornerThreshold,
-      "--length-threshold", lengthThreshold,
-      "--splice-threshold", spliceThreshold,
-      "--path-precision", pathPrecision,
+      "--colormode", ok.colormode,
+      "--hierarchical", ok.hierarchical,
+      "--curve-mode", ok.curveMode,
+      "--filter-speckle", ok.filterSpeckle,
+      "--color-precision", ok.colorPrecision,
+      "--layer-difference", ok.layerDifference,
+      "--corner-threshold", ok.cornerThreshold,
+      "--length-threshold", ok.lengthThreshold,
+      "--splice-threshold", ok.spliceThreshold,
+      "--path-precision", ok.pathPrecision,
     ];
 
     // Por turnos: cada uno de estos arranca un Python que puede tardar minutos y
