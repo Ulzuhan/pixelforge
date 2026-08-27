@@ -30,12 +30,19 @@ export interface OidcConfig {
   appSlug: string;
 }
 
-function validUrl(raw: string | undefined, allowLoopbackHttp: boolean): string | null {
+// El mismo contrato que DocDrop y SecretDrop: la pata pública exige https
+// (http solo en loopback, para desarrollo); la interna admite http con
+// cualquier hostname, porque es el tramo servidor→proveedor y un alias de red
+// de contenedores (authentik-server) o un nombre de LAN son el caso normal.
+// La versión anterior exigía loopback también ahí y dejaba el login en 503
+// dentro de un contenedor — el mismo fallo, y el mismo arreglo, que QR-Forge
+// y TabUp: un ayudante copiado cinco veces copia también sus fallos.
+function validUrl(raw: string | undefined, publicFacing: boolean): string | null {
   if (!raw) return null;
   try {
     const url = new URL(raw.trim());
     const loopback = url.hostname === "127.0.0.1" || url.hostname === "localhost" || url.hostname === "::1";
-    if (url.protocol !== "https:" && !(allowLoopbackHttp && loopback && url.protocol === "http:")) return null;
+    if (url.protocol !== "https:" && !(url.protocol === "http:" && (!publicFacing || loopback))) return null;
     if (url.username || url.password || url.search || url.hash) return null;
     return url.toString().replace(/\/+$/, "");
   } catch {
@@ -47,7 +54,7 @@ export function oidcConfig(): OidcConfig | null {
   const clientId = process.env.PIXELFORGE_OIDC_CLIENT_ID?.trim();
   const clientSecret = process.env.PIXELFORGE_OIDC_CLIENT_SECRET?.trim();
   const publicBase = validUrl(process.env.PIXELFORGE_OIDC_PUBLIC_BASE, true);
-  const internalBase = validUrl(process.env.PIXELFORGE_OIDC_INTERNAL_BASE ?? process.env.PIXELFORGE_OIDC_PUBLIC_BASE, true);
+  const internalBase = validUrl(process.env.PIXELFORGE_OIDC_INTERNAL_BASE ?? process.env.PIXELFORGE_OIDC_PUBLIC_BASE, false);
   const redirectUri = validUrl(process.env.PIXELFORGE_OIDC_REDIRECT_URI, true);
   const appSlug = (process.env.PIXELFORGE_OIDC_APP_SLUG ?? "pixelforge").trim();
   if (!clientId || !clientSecret || !publicBase || !internalBase || !redirectUri || !/^[A-Za-z0-9_-]+$/.test(appSlug)) return null;

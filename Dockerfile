@@ -8,7 +8,12 @@ RUN npm run build
 FROM node:22-bookworm-slim AS runtime
 ENV NODE_ENV=production HOSTNAME=0.0.0.0 PORT=3458 \
     PIXELFORGE_PYTHON=/opt/venv/bin/python3 PIXELFORGE_TMP_DIR=/work \
-    U2NET_HOME=/models
+    U2NET_HOME=/models \
+    NUMBA_CACHE_DIR=/work/numba-cache
+# NUMBA_CACHE_DIR: numba (pymatting, que rembg importa al cargar) compila con
+# cache=True y quiere escribir junto al código del venv — imposible con la raíz
+# de solo lectura: todos los removebg daban 500, medido. Al tmpfs de /work; se
+# recompila en cada arranque y eso es aceptable.
 RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-venv libgomp1 libgl1 libglib2.0-0 ca-certificates \
     && python3 -m venv /opt/venv \
     && rm -rf /var/lib/apt/lists/*
