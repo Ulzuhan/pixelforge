@@ -6,7 +6,7 @@ PixelForge procesa entradas no confiables con librerías nativas y redes neurona
 
 1. Copia `.env.example` a `.env`. Genera `PIXELFORGE_SESSION_SECRET` con `openssl rand -hex 32` y configura OIDC.
 2. Construye y arranca con `docker compose up -d --build`.
-3. Precalienta cada modelo permitido desde una cuenta de mantenimiento antes de abrir tráfico. La primera petición descarga cientos de MB; `/models` es persistente.
+3. **Los modelos se descargan al primer arranque, verificados**: el entrypoint baja los cuatro ONNX permitidos a `/models` (~400 MB) y comprueba su sha256 contra los valores fijados en `scripts/container-entrypoint.mjs` — si el origen sirviera otros bytes, el servicio se niega a arrancar. El healthcheck da 5 minutos de margen a ese primer arranque; los siguientes son inmediatos porque `/models` es persistente. Sin salida a internet, siembra el volumen copiando los `.onnx` a mano: si ya existen, no se descarga nada.
 4. Publica sólo el proxy TLS. Compose enlaza PixelForge a `127.0.0.1:3458`.
 
 El contenedor corre sin root, sin capacidades, con raíz de solo lectura y subidas en un tmpfs privado. El límite de 6 GiB presupone dos trabajos simultáneos; mídelo con tus imágenes y reduce `PIXELFORGE_MAX_JOBS` antes de reducir memoria.

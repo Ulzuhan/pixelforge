@@ -15,12 +15,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 python3
 COPY python/requirements.lock /tmp/requirements.lock
 RUN /opt/venv/bin/pip install --no-cache-dir -r /tmp/requirements.lock && rm /tmp/requirements.lock
 WORKDIR /app
-RUN groupadd --system pixelforge && useradd --system --gid pixelforge --home /nonexistent pixelforge \
+# uid fijo y alto a propósito: es la política de las cinco imágenes (10001), no
+# choca con usuarios del sistema del host y los bind mounts saben a quién
+# pertenecer. Sin él, --system asignaba el siguiente uid libre (999 aquí).
+RUN groupadd --system --gid 10001 pixelforge && useradd --system --uid 10001 --gid pixelforge --home /nonexistent pixelforge \
     && mkdir /work /models && chown pixelforge:pixelforge /work /models
 COPY --from=build --chown=pixelforge:pixelforge /app/.next/standalone ./
 COPY --from=build --chown=pixelforge:pixelforge /app/.next/static ./.next/static
 COPY --from=build --chown=pixelforge:pixelforge /app/public ./public
 COPY --from=build --chown=pixelforge:pixelforge /app/python ./python
+COPY --from=build --chown=pixelforge:pixelforge /app/scripts/container-entrypoint.mjs ./scripts/container-entrypoint.mjs
 USER pixelforge
 EXPOSE 3458
-CMD ["node", "server.js"]
+# start-period largo a conciencia: un primer arranque con el volumen de modelos
+# vacío descarga ~400 MB verificados antes de escuchar.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=300s --retries=3 CMD ["node", "-e", "fetch('http://127.0.0.1:3458/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+CMD ["node", "scripts/container-entrypoint.mjs"]
