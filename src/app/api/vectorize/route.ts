@@ -15,6 +15,26 @@ const PYTHON = join(process.env.HOME || "/home/ulzuhan", ".pixelforge-venv", "bi
 const PROCESSOR = join(process.cwd(), "python", "process.py");
 
 /**
+ * Nombre seguro para `Content-Disposition`.
+ *
+ * El nombre lo pone quien sube el fichero. Con comillas dentro, la cabecera
+ * salía partida —`filename="foto"rara.png"`, que el navegador lee como `foto`—
+ * y con un salto de línea el runtime rechazaba la cabecera entera y la petición
+ * moría con un 500. No llega a ser inyección (Node valida el valor), pero son
+ * dos formas de romperlo desde fuera.
+ *
+ * Se queda solo con el nombre base, sin rutas ni caracteres de control.
+ */
+function nombreSeguro(nombre: string, sufijo: string): string {
+  const base = nombre
+    .replace(/\.[^.]+$/, "")
+    .replace(/[\u0000-\u001F\u007F"\\/]/g, "_")
+    .trim()
+    .slice(0, 80);
+  return `${base || "image"}${sufijo}`;
+}
+
+/**
  * Barrido de huérfanas al arrancar. Esta ruta no lo tenía y comparte
  * `.pixelforge-tmp` con la de quitar fondos, así que sus restos dependían de que
  * arrancara la otra. Misma lógica: la antigüedad sale de la fecha de la carpeta
@@ -118,7 +138,10 @@ export async function POST(request: NextRequest) {
     if (!existsSync(outputPath)) {
       console.error("vtracer stderr:", stderr);
       return NextResponse.json(
-        { error: "Vectorization failed. Check server logs.", details: stderr.slice(0, 500) },
+        // Sin `details`: el stderr de Python lleva rutas absolutas del servidor
+        // —usuario, venv, árbol del proyecto, nombre del temporal— y eso no
+        // tiene por qué salir de la máquina. Al log entero, al cliente lo justo.
+        { error: "Vectorization failed. Check server logs." },
         { status: 500 }
       );
     }
@@ -131,13 +154,13 @@ export async function POST(request: NextRequest) {
       status: 200,
       headers: {
         "Content-Type": "image/svg+xml",
-        "Content-Disposition": `inline; filename="${file.name.replace(/\.[^.]+$/, '')}.svg"`,
+        "Content-Disposition": `inline; filename="${nombreSeguro(file.name, ".svg")}"`,
       },
     });
   } catch (error) {
     console.error("Vectorize error:", error);
     return NextResponse.json(
-      { error: "Processing failed", details: error instanceof Error ? error.message.slice(0, 300) : undefined },
+      { error: "Processing failed" },
       { status: 500 }
     );
   } finally {

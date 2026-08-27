@@ -16,6 +16,26 @@ const PYTHON = join(process.env.HOME || "/home/ulzuhan", ".pixelforge-venv", "bi
 const PROCESSOR = join(process.cwd(), "python", "process.py");
 
 /**
+ * Nombre seguro para `Content-Disposition`.
+ *
+ * El nombre lo pone quien sube el fichero. Con comillas dentro, la cabecera
+ * salía partida —`filename="foto"rara.png"`, que el navegador lee como `foto`—
+ * y con un salto de línea el runtime rechazaba la cabecera entera y la petición
+ * moría con un 500. No llega a ser inyección (Node valida el valor), pero son
+ * dos formas de romperlo desde fuera.
+ *
+ * Se queda solo con el nombre base, sin rutas ni caracteres de control.
+ */
+function nombreSeguro(nombre: string, sufijo: string): string {
+  const base = nombre
+    .replace(/\.[^.]+$/, "")
+    .replace(/[\u0000-\u001F\u007F"\\/]/g, "_")
+    .trim()
+    .slice(0, 80);
+  return `${base || "image"}${sufijo}`;
+}
+
+/**
  * Barrido de carpetas temporales huérfanas al arrancar.
  *
  * La versión anterior no borraba nada nunca. Leía un `meta.json` para saber la
@@ -62,7 +82,19 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
-    const model = (formData.get("model") as string) || "isnet-general-use";
+    // Lista blanca: `model` viaja hasta `new_session()` de rembg, que con un
+    // nombre desconocido intenta resolverlo y descargarlo. No hay inyección de
+    // comandos —los argumentos van en array, sin shell— pero un valor cualquiera
+    // convertía la petición en un 500 y en trabajo inútil del servidor.
+    const MODELOS = ["isnet-general-use", "u2net", "u2netp", "silueta"] as const;
+    const modelPedido = (formData.get("model") as string) || "isnet-general-use";
+    if (!MODELOS.includes(modelPedido as (typeof MODELOS)[number])) {
+      return NextResponse.json(
+        { error: `Unknown model. Supported: ${MODELOS.join(", ")}` },
+        { status: 400 }
+      );
+    }
+    const model = modelPedido;
     const alphaMatting = formData.get("alphaMatting") === "true";
     const postProcess = formData.get("postProcess") === "true";
 
@@ -118,7 +150,10 @@ export async function POST(request: NextRequest) {
     if (!existsSync(outputPath)) {
       console.error("rembg stderr:", stderr);
       return NextResponse.json(
-        { error: "Background removal failed. Check server logs.", details: stderr.slice(0, 500) },
+        // Sin `details`: el stderr de Python lleva rutas absolutas del servidor
+        // —usuario, venv, árbol del proyecto, nombre del temporal— y eso no
+        // tiene por qué salir de la máquina. Al log entero, al cliente lo justo.
+        { error: "Background removal failed. Check server logs." },
         { status: 500 }
       );
     }
@@ -133,13 +168,13 @@ export async function POST(request: NextRequest) {
       status: 200,
       headers: {
         "Content-Type": "image/png",
-        "Content-Disposition": `inline; filename="${file.name.replace(/\.[^.]+$/, '')}-nobg.png"`,
+        "Content-Disposition": `inline; filename="${nombreSeguro(file.name, "-nobg.png")}"`,
       },
     });
   } catch (error) {
     console.error("RemoveBG error:", error);
     return NextResponse.json(
-      { error: "Processing failed", details: error instanceof Error ? error.message.slice(0, 300) : undefined },
+      { error: "Processing failed" },
       { status: 500 }
     );
   } finally {
