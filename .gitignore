@@ -39,3 +39,11 @@ next-env.d.ts
 .pixelforge-tmp/
 # env files (explicit)
 .env
+
+# Artefactos de Python (el procesado de imágenes corre en un venv)
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Temporales de procesado: imágenes de usuarios, nunca al repositorio
+.pixelforge-tmp/

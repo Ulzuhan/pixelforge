@@ -97,6 +97,9 @@ export async function exchangeCode(
 ): Promise<OidcIdentity> {
   const res = await fetch(`${cfg.internalBase}${APP_PATH}/token/`, {
     method: "POST",
+    // Sin timeout, si el proveedor deja de responder esta petición se queda
+    // colgada y con ella la del usuario: el login no falla, se queda esperando.
+    signal: AbortSignal.timeout(10_000),
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       grant_type: "authorization_code",
@@ -116,6 +119,7 @@ export async function exchangeCode(
   if (!tokens.access_token) throw new Error("token endpoint: no access_token");
 
   const info = await fetch(`${cfg.internalBase}${APP_PATH}/userinfo/`, {
+    signal: AbortSignal.timeout(10_000),
     headers: { Authorization: `Bearer ${tokens.access_token}` },
   });
   if (!info.ok) {
@@ -128,4 +132,30 @@ export async function exchangeCode(
   }
 
   return { sub: claims.sub, email: claims.email.toLowerCase(), name: claims.name };
+}
+
+/**
+ * Destino interno seguro tras iniciar sesión.
+ *
+ * La comprobación anterior era `startsWith("/") && !startsWith("//")`, y se
+ * escapaba: **los navegadores normalizan `\` a `/` dentro de las URLs**, así que
+ * `/\evil.com` empieza por una sola barra —pasa el filtro— pero el navegador lo
+ * resuelve como `//evil.com`, o sea protocolo relativo hacia un dominio ajeno.
+ * Iniciar sesión se convertía en un redirector a donde quisiera quien mandara
+ * el enlace.
+ *
+ * Los caracteres de control se quitan **antes** de decidir, no después: el
+ * navegador también los descarta al resolver la URL, así que comprobar sobre la
+ * cadena sucia estaría mirando una URL distinta de la que se va a seguir.
+ *
+ * Vive aquí y no en cada ruta porque estaba duplicado en el inicio de sesión y
+ * en la vuelta del proveedor, y dos copias de una comprobación de seguridad
+ * acaban divergiendo.
+ */
+export function safeNext(raw: string | undefined | null): string {
+  if (!raw) return "/";
+  const limpio = raw.replace(/[\u0000-\u001F\u007F]/g, "");
+  if (!limpio.startsWith("/")) return "/";
+  if (limpio.startsWith("//") || limpio.startsWith("/\\")) return "/";
+  return limpio;
 }

@@ -5,10 +5,10 @@ import { useState, useCallback, useRef } from "react";
 /*
  * Sobre los `<img>` de este fichero.
  *
- * Sus imágenes NO existen en el servidor: son `data:` (las crea FileReader al
- * elegir un fichero) y `blob:` (las crea createObjectURL con el resultado).
- * `next/image` no puede optimizar lo que no puede descargar, así que aquí
- * `<img>` no es un descuido sino lo correcto.
+ * Sus imágenes NO existen en el servidor: son `blob:`, creadas con
+ * createObjectURL tanto para la vista previa de lo que se sube como para el
+ * resultado. `next/image` no puede optimizar lo que no puede descargar, así que
+ * aquí `<img>` no es un descuido sino lo correcto.
  *
  * La regla se calla línea a línea y no en todo el fichero, para que un `<img>`
  * nuevo sobre un fichero de verdad siga avisando.
@@ -76,9 +76,13 @@ export function Tool({ email }: { email: string }) {
     }
 
     setInputFile(file);
-    const reader = new FileReader();
-    reader.onload = (e) => setInputPreview(e.target?.result as string);
-    reader.readAsDataURL(file);
+    // `readAsDataURL` convierte la imagen a base64: una foto de 40 MB pasa a ser
+    // una cadena de ~55 MB retenida en el estado de React. Un Object URL es
+    // instantáneo y no duplica nada; se revoca al cambiar de imagen.
+    setInputPreview((anterior) => {
+      if (anterior?.startsWith("blob:")) URL.revokeObjectURL(anterior);
+      return URL.createObjectURL(file);
+    });
 
     if (processing.resultUrl) URL.revokeObjectURL(processing.resultUrl);
     setProcessing({
@@ -145,16 +149,22 @@ export function Tool({ email }: { email: string }) {
           }
         });
 
-        xhr.onload = () => {
+        xhr.onload = async () => {
           if (xhr.status >= 200 && xhr.status < 300) {
             resolve(xhr.response);
-          } else {
-            try {
-              const err = JSON.parse(xhr.responseText);
-              reject(new Error(err.error || err.details || "Processing failed"));
-            } catch {
-              reject(new Error(`Processing failed (HTTP ${xhr.status})`));
-            }
+            return;
+          }
+          // El error llega como Blob, no como texto: con `responseType = "blob"`
+          // leer `responseText` lanza InvalidStateError por especificación, la
+          // excepción caía en el catch de abajo y el usuario veía siempre
+          // "Processing failed (HTTP 400)" en lugar del motivo real —"Invalid
+          // file type", "File too large. Max 50MB."—, que el servidor sí manda.
+          try {
+            const texto = await (xhr.response as Blob).text();
+            const err = JSON.parse(texto);
+            reject(new Error(err.error || err.details || "Processing failed"));
+          } catch {
+            reject(new Error(`Processing failed (HTTP ${xhr.status})`));
           }
         };
         xhr.onerror = () => reject(new Error("Network error"));
@@ -210,12 +220,18 @@ export function Tool({ email }: { email: string }) {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Revocar en el mismo ciclo síncrono corta la descarga en navegadores cuyo
+    // gestor trabaja de forma asíncrona (Firefox, Safari): el fichero llega
+    // vacío o a medias. Se difiere para que la descarga ya haya cogido el blob.
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }, [processing.resultBlob, processing.resultFilename]);
 
   const reset = useCallback(() => {
     setInputFile(null);
-    setInputPreview(null);
+    setInputPreview((anterior) => {
+      if (anterior?.startsWith("blob:")) URL.revokeObjectURL(anterior);
+      return null;
+    });
     if (processing.resultUrl) URL.revokeObjectURL(processing.resultUrl);
     setProcessing({
       loading: false,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir, unlink } from "fs/promises";
+import { writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import { join } from "path";
 import { randomBytes } from "crypto";
@@ -15,26 +15,30 @@ const TMP_DIR = join(process.cwd(), ".pixelforge-tmp");
 const PYTHON = join(process.env.HOME || "/home/ulzuhan", ".pixelforge-venv", "bin", "python3");
 const PROCESSOR = join(process.cwd(), "python", "process.py");
 
-// Cleanup old temp files on startup
+/**
+ * Barrido de carpetas temporales huérfanas al arrancar.
+ *
+ * La versión anterior no borraba nada nunca. Leía un `meta.json` para saber la
+ * antigüedad, pero **ese fichero no lo escribía nadie**: la lectura fallaba
+ * siempre, el `catch` se lo tragaba y se saltaba la carpeta entera. Encima
+ * intentaba borrar `input` y `output` sin extensión, cuando los reales son
+ * `input.png`, `output.svg`… Se encontraron carpetas de tres meses con imágenes
+ * de usuarios dentro.
+ *
+ * Ahora la antigüedad sale de la fecha de la propia carpeta —que el sistema de
+ * ficheros ya lleva— y se borra recursivamente, sin depender de acertar nombres.
+ */
 async function cleanupOld() {
   if (!existsSync(TMP_DIR)) return;
   const now = Date.now();
   try {
-    const dirs = await import("fs/promises").then((m) => m.readdir(TMP_DIR));
-    for (const id of dirs) {
-      const metaPath = join(TMP_DIR, id, "meta.json");
+    const { readdir, stat, rm } = await import("fs/promises");
+    for (const id of await readdir(TMP_DIR)) {
+      const dir = join(TMP_DIR, id);
       try {
-        const { readFile } = await import("fs/promises");
-        const raw = await readFile(metaPath, "utf-8");
-        const meta = JSON.parse(raw);
-        if (now - meta.createdAt > 30 * 60 * 1000) {
-          try { await unlink(join(TMP_DIR, id, "input")); } catch {}
-          try { await unlink(join(TMP_DIR, id, "output")); } catch {}
-          try { await unlink(metaPath); } catch {}
-          try {
-            const { rmdir } = await import("fs/promises");
-            await rmdir(join(TMP_DIR, id));
-          } catch {}
+        const info = await stat(dir);
+        if (now - info.mtimeMs > 30 * 60 * 1000) {
+          await rm(dir, { recursive: true, force: true });
         }
       } catch {}
     }
@@ -48,6 +52,12 @@ export async function POST(request: NextRequest) {
   // internet, esto es cómputo gratis para quien lo encuentre.
   const unauthorized = await requireAccount();
   if (unauthorized) return unauthorized;
+
+  // `workDir` se declara aquí y no dentro del try para que el `finally` pueda
+  // verlo: antes, si el proceso de Python fallaba o agotaba los 3 minutos, la
+  // ejecución saltaba al catch y la carpeta —con la imagen del usuario, hasta
+  // 50 MB— se quedaba en disco para siempre.
+  let workDir: string | null = null;
 
   try {
     const formData = await request.formData();
@@ -78,7 +88,7 @@ export async function POST(request: NextRequest) {
     }
 
     const id = randomBytes(6).toString("hex");
-    const workDir = join(TMP_DIR, id);
+    workDir = join(TMP_DIR, id);
     await mkdir(workDir, { recursive: true });
 
     // Determine input extension
@@ -117,13 +127,6 @@ export async function POST(request: NextRequest) {
     const { readFile } = await import("fs/promises");
     const outputBuffer = await readFile(outputPath);
 
-    // Clean up temp files
-    try { await unlink(inputPath); } catch {}
-    try { await unlink(outputPath); } catch {}
-    try {
-      const { rmdir } = await import("fs/promises");
-      await rmdir(workDir);
-    } catch {}
 
     // Return the processed image
     return new NextResponse(outputBuffer, {
@@ -139,5 +142,15 @@ export async function POST(request: NextRequest) {
       { error: "Processing failed", details: error instanceof Error ? error.message.slice(0, 300) : undefined },
       { status: 500 }
     );
+  } finally {
+    // Pase lo que pase —éxito, error controlado, timeout de Python o excepción
+    // inesperada— la carpeta temporal se va. Es la única garantía de que no se
+    // acumulen imágenes de usuarios en disco.
+    if (workDir) {
+      try {
+        const { rm } = await import("fs/promises");
+        await rm(workDir, { recursive: true, force: true });
+      } catch {}
+    }
   }
 }

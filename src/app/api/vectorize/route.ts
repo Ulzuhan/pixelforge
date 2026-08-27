@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir, unlink } from "fs/promises";
+import { writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import { join } from "path";
 import { randomBytes } from "crypto";
@@ -14,11 +14,42 @@ const TMP_DIR = join(process.cwd(), ".pixelforge-tmp");
 const PYTHON = join(process.env.HOME || "/home/ulzuhan", ".pixelforge-venv", "bin", "python3");
 const PROCESSOR = join(process.cwd(), "python", "process.py");
 
+/**
+ * Barrido de huérfanas al arrancar. Esta ruta no lo tenía y comparte
+ * `.pixelforge-tmp` con la de quitar fondos, así que sus restos dependían de que
+ * arrancara la otra. Misma lógica: la antigüedad sale de la fecha de la carpeta
+ * y se borra recursivamente.
+ */
+async function cleanupOld() {
+  if (!existsSync(TMP_DIR)) return;
+  const now = Date.now();
+  try {
+    const { readdir, stat, rm } = await import("fs/promises");
+    for (const id of await readdir(TMP_DIR)) {
+      const dir = join(TMP_DIR, id);
+      try {
+        const info = await stat(dir);
+        if (now - info.mtimeMs > 30 * 60 * 1000) {
+          await rm(dir, { recursive: true, force: true });
+        }
+      } catch {}
+    }
+  } catch {}
+}
+
+cleanupOld();
+
 export async function POST(request: NextRequest) {
   // Quitar un fondo ejecuta una red neuronal varios segundos: abierto a
   // internet, esto es cómputo gratis para quien lo encuentre.
   const unauthorized = await requireAccount();
   if (unauthorized) return unauthorized;
+
+  // `workDir` se declara aquí y no dentro del try para que el `finally` pueda
+  // verlo: antes, si el proceso de Python fallaba o agotaba los 3 minutos, la
+  // ejecución saltaba al catch y la carpeta —con la imagen del usuario, hasta
+  // 50 MB— se quedaba en disco para siempre.
+  let workDir: string | null = null;
 
   try {
     const formData = await request.formData();
@@ -54,7 +85,7 @@ export async function POST(request: NextRequest) {
     }
 
     const id = randomBytes(6).toString("hex");
-    const workDir = join(TMP_DIR, id);
+    workDir = join(TMP_DIR, id);
     await mkdir(workDir, { recursive: true });
 
     const ext = file.name.match(/\.(png|jpe?g|webp|bmp|tiff?)$/i)?.[0] || ".png";
@@ -95,12 +126,6 @@ export async function POST(request: NextRequest) {
     const { readFile } = await import("fs/promises");
     const outputBuffer = await readFile(outputPath);
 
-    try { await unlink(inputPath); } catch {}
-    try { await unlink(outputPath); } catch {}
-    try {
-      const { rmdir } = await import("fs/promises");
-      await rmdir(workDir);
-    } catch {}
 
     return new NextResponse(outputBuffer, {
       status: 200,
@@ -115,5 +140,15 @@ export async function POST(request: NextRequest) {
       { error: "Processing failed", details: error instanceof Error ? error.message.slice(0, 300) : undefined },
       { status: 500 }
     );
+  } finally {
+    // Pase lo que pase —éxito, error controlado, timeout de Python o excepción
+    // inesperada— la carpeta temporal se va. Es la única garantía de que no se
+    // acumulen imágenes de usuarios en disco.
+    if (workDir) {
+      try {
+        const { rm } = await import("fs/promises");
+        await rm(workDir, { recursive: true, force: true });
+      } catch {}
+    }
   }
 }

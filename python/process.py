@@ -78,6 +78,13 @@ def cmd_vectorize(args: argparse.Namespace) -> None:
         ratio = max_dim / max(input_img.size)
         new_size = (int(input_img.width * ratio), int(input_img.height * ratio))
         input_img = input_img.resize(new_size, Image.LANCZOS)
+        # PNG no admite CMYK: un JPEG o un TIFF de imprenta reventaba aquí con
+        # "OSError: cannot write mode CMYK as PNG", y el usuario solo veía un
+        # fallo genérico. Se convierte antes de guardar, conservando el canal
+        # alfa cuando lo hay. (El modo P sí guarda como PNG; no hace falta
+        # tocarlo, y convertirlo perdería su paleta.)
+        if input_img.mode not in ("RGB", "RGBA", "L", "LA", "P"):
+            input_img = input_img.convert("RGBA" if "A" in input_img.mode else "RGB")
         # Save resized version for vtracer
         resized_path = args.input + ".resized.png"
         input_img.save(resized_path, "PNG")
