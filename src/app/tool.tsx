@@ -489,28 +489,28 @@ export function Tool({ email }: { email: string }) {
                           <span className="text-muted">Color Precision</span>
                           <span className="text-foreground">{colorPrecision}</span>
                         </div>
-                        <input type="range" min="1" max="12" value={colorPrecision} aria-label="Color Precision" aria-valuetext="{colorPrecision}" onChange={(e) => setColorPrecision(Number(e.target.value))} className="w-full accent-accent" />
+                        <input type="range" min="1" max="12" value={colorPrecision} aria-label="Color Precision" onChange={(e) => setColorPrecision(Number(e.target.value))} className="w-full accent-accent" />
                       </div>
                       <div className="space-y-1">
                         <div className="flex justify-between text-xs">
                           <span className="text-muted">Filter Speckle</span>
                           <span className="text-foreground">{filterSpeckle}</span>
                         </div>
-                        <input type="range" min="0" max="64" value={filterSpeckle} aria-label="Filter Speckle" aria-valuetext="{filterSpeckle}" onChange={(e) => setFilterSpeckle(Number(e.target.value))} className="w-full accent-accent" />
+                        <input type="range" min="0" max="64" value={filterSpeckle} aria-label="Filter Speckle" onChange={(e) => setFilterSpeckle(Number(e.target.value))} className="w-full accent-accent" />
                       </div>
                       <div className="space-y-1">
                         <div className="flex justify-between text-xs">
                           <span className="text-muted">Corner Threshold</span>
                           <span className="text-foreground">{cornerThreshold}</span>
                         </div>
-                        <input type="range" min="1" max="180" value={cornerThreshold} aria-label="Corner Threshold" aria-valuetext="{cornerThreshold}" onChange={(e) => setCornerThreshold(Number(e.target.value))} className="w-full accent-accent" />
+                        <input type="range" min="1" max="180" value={cornerThreshold} aria-label="Corner Threshold" onChange={(e) => setCornerThreshold(Number(e.target.value))} className="w-full accent-accent" />
                       </div>
                       <div className="space-y-1">
                         <div className="flex justify-between text-xs">
                           <span className="text-muted">Splice Threshold</span>
                           <span className="text-foreground">{spliceThreshold}</span>
                         </div>
-                        <input type="range" min="1" max="90" value={spliceThreshold} aria-label="Splice Threshold" aria-valuetext="{spliceThreshold}" onChange={(e) => setSpliceThreshold(Number(e.target.value))} className="w-full accent-accent" />
+                        <input type="range" min="1" max="90" value={spliceThreshold} aria-label="Splice Threshold" onChange={(e) => setSpliceThreshold(Number(e.target.value))} className="w-full accent-accent" />
                       </div>
                     </div>
                   </div>
