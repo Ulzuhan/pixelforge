@@ -77,6 +77,7 @@ spends real CPU and real memory on a request.
 | `PIXELFORGE_MAX_JOBS` | `2` | Python processes running at once |
 | `PIXELFORGE_MAX_QUEUE` | `6` | Requests waiting for a turn; beyond that, 503 with `Retry-After` |
 | `PIXELFORGE_MAX_REQUESTS_PER_HOUR` | `30` | Requests admitted per signed identity and client IP each hour |
+| `PIXELFORGE_PUBLIC_HOST` | Nombre público con el que se comprueba el origen de una petición. Sin poner se usa el `Host` que llega, que es lo correcto detrás de un túnel que lo conserva. Sólo hace falta si el proxy lo reescribe con un nombre interno. |
 
 The pixel budget is not the same thing as the 50 MB upload cap, and that difference
 is the whole point: a flat-colour 8000×8000 PNG is 197 KB on disk and 64 million
