@@ -76,6 +76,39 @@ const interno = await fetch(`${BASE}/api/auth/login?next=%2Ftrabajo`, { redirect
 check("el desvío interno sigue siendo interno", (interno.headers.get("location") ?? "").startsWith("http://127.0.0.1:9999"), true);
 
 console.log("\nSalir");
+const csrfSalida = await fetch(`${BASE}/api/auth/logout`, { method: "POST", headers: { cookie: buena, origin: "https://hermano.example", "sec-fetch-site": "same-site" }, redirect: "manual" });
+check("un origen hermano no puede cerrar la sesión", csrfSalida.status, 403);
+check("y no borra la cookie", csrfSalida.headers.get("set-cookie"), null);
+
+/**
+ * Y la cabecera que decide de dónde viene la petición no la puede escribir quien
+ * llama.
+ *
+ * `X-Forwarded-Host` **no la reemplaza este despliegue**: comprobado en vivo contra
+ * el túnel, llega intacta mientras `Host` sigue valiendo el nombre de verdad.
+ * Prefiriéndola, la comprobación de origen se saltaba sola.
+ *
+ * El `Origin` va con el mismo esquema que ve el servidor de pruebas, a propósito:
+ * con otro, rechazaría por el esquema y este test pasaría aunque el fallo siguiera
+ * ahí. Y sin `Sec-Fetch-Site`, que es como llega un navegador que no manda Fetch
+ * Metadata: deja sola a la comprobación de origen, que es la que se quiere probar.
+ */
+const falseada = await fetch(`${BASE}/api/auth/logout`, {
+  method: "POST",
+  headers: { cookie: buena, origin: "http://malo.example", "x-forwarded-host": "malo.example" },
+  redirect: "manual",
+});
+check("una cabecera X-Forwarded-Host inventada no cierra la sesión", falseada.status, 403);
+check("y tampoco borra la cookie", falseada.headers.get("set-cookie"), null);
+
+// Y en la ruta que gasta CPU, que es la que de verdad importa aquí.
+const conFalseada = await procesar("/api/removebg", {
+  cookie: buena,
+  datos: PNG,
+  headers: { origin: "http://malo.example", "x-forwarded-host": "malo.example" },
+});
+check("ni cuela un trabajo de proceso", conFalseada.status, 403);
+
 const salida = await fetch(`${BASE}/api/auth/logout`, {
   method: "POST",
   headers: { cookie: buena },

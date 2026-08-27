@@ -30,20 +30,27 @@ export interface OidcConfig {
   appSlug: string;
 }
 
+function validUrl(raw: string | undefined, allowLoopbackHttp: boolean): string | null {
+  if (!raw) return null;
+  try {
+    const url = new URL(raw.trim());
+    const loopback = url.hostname === "127.0.0.1" || url.hostname === "localhost" || url.hostname === "::1";
+    if (url.protocol !== "https:" && !(allowLoopbackHttp && loopback && url.protocol === "http:")) return null;
+    if (url.username || url.password || url.search || url.hash) return null;
+    return url.toString().replace(/\/+$/, "");
+  } catch {
+    return null;
+  }
+}
+
 export function oidcConfig(): OidcConfig | null {
   const clientId = process.env.PIXELFORGE_OIDC_CLIENT_ID?.trim();
   const clientSecret = process.env.PIXELFORGE_OIDC_CLIENT_SECRET?.trim();
-  const publicBase = (process.env.PIXELFORGE_OIDC_PUBLIC_BASE ?? "https://auth.kaicorplabs.com").replace(/\/+$/, "");
-  const internalBase = (process.env.PIXELFORGE_OIDC_INTERNAL_BASE ?? "http://127.0.0.1:9100").replace(/\/+$/, "");
-  const redirectUri = process.env.PIXELFORGE_OIDC_REDIRECT_URI?.trim();
-
-  // El cierre de sesión de Authentik cuelga del slug con el que se dio de alta
-  // la aplicación, y ese slug lo elige quien la despliega. Estaba escrito a mano:
-  // correcto aquí, roto para cualquiera que la registre con otro nombre. El
-  // valor por defecto mantiene el comportamiento actual.
-  const appSlug = (process.env.PIXELFORGE_OIDC_APP_SLUG ?? "pixelforge").trim().replace(/^\/+|\/+$/g, "");
-
-  if (!clientId || !clientSecret || !redirectUri) return null;
+  const publicBase = validUrl(process.env.PIXELFORGE_OIDC_PUBLIC_BASE, true);
+  const internalBase = validUrl(process.env.PIXELFORGE_OIDC_INTERNAL_BASE ?? process.env.PIXELFORGE_OIDC_PUBLIC_BASE, true);
+  const redirectUri = validUrl(process.env.PIXELFORGE_OIDC_REDIRECT_URI, true);
+  const appSlug = (process.env.PIXELFORGE_OIDC_APP_SLUG ?? "pixelforge").trim();
+  if (!clientId || !clientSecret || !publicBase || !internalBase || !redirectUri || !/^[A-Za-z0-9_-]+$/.test(appSlug)) return null;
   return { publicBase, internalBase, clientId, clientSecret, redirectUri, appSlug };
 }
 
@@ -134,12 +141,12 @@ export async function exchangeCode(
     throw new Error(`userinfo: ${info.status}`);
   }
 
-  const claims = (await info.json()) as { sub?: string; email?: string; name?: string };
-  if (!claims.sub || !claims.email) {
+  const claims = (await info.json()) as { sub?: unknown; email?: unknown; name?: unknown };
+  if (typeof claims.sub !== "string" || !claims.sub || typeof claims.email !== "string" || !claims.email || (claims.name !== undefined && typeof claims.name !== "string")) {
     throw new Error("userinfo: missing sub or email");
   }
 
-  return { sub: claims.sub, email: claims.email.toLowerCase(), name: claims.name };
+  return { sub: claims.sub.slice(0, 256), email: claims.email.toLowerCase().slice(0, 320), name: claims.name?.slice(0, 256) };
 }
 
 /**

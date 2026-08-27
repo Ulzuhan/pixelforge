@@ -1,3 +1,5 @@
+import { positiveInt } from "@/lib/request-security";
+
 /**
  * Cuántos trabajos pesados corren a la vez.
  *
@@ -16,8 +18,8 @@
  * después esperan; si la espera ya es larga se contesta 503 con `Retry-After`,
  * que es más honrado que aceptar un trabajo que no va a empezar en un buen rato.
  */
-const MAX_A_LA_VEZ = Number(process.env.PIXELFORGE_MAX_JOBS || 2);
-const MAX_EN_ESPERA = Number(process.env.PIXELFORGE_MAX_QUEUE || 6);
+const MAX_A_LA_VEZ = positiveInt("PIXELFORGE_MAX_JOBS", 2, 16);
+const MAX_EN_ESPERA = positiveInt("PIXELFORGE_MAX_QUEUE", 6, 100);
 
 let activos = 0;
 const esperando: Array<() => void> = [];

@@ -1,0 +1,25 @@
+services:
+  pixelforge:
+    build: .
+    restart: unless-stopped
+    init: true
+    ports:
+      - "127.0.0.1:3458:3458"
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - pixelforge-models:/models
+    tmpfs:
+      - /work:rw,noexec,nosuid,nodev,size=512m,mode=0700,uid=999,gid=999
+      - /tmp:rw,noexec,nosuid,nodev,size=32m
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 512
+    mem_limit: 6g
+    cpus: 3.5
+
+volumes:
+  pixelforge-models:

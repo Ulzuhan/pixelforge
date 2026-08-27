@@ -180,6 +180,22 @@ for (const [que, cola, galleta] of [
   check(`no abre sesión ${que}`, abre, false);
 }
 
+console.log("\nFrontera HTTP y aislamiento del SVG");
+check("un origen ajeno no puede gastar CPU", (await procesar("/api/removebg", { cookie, datos: PNG, headers: { origin: "https://hermano.example", "sec-fetch-site": "same-site" } })).status, 403);
+const texto = await fetch(`${BASE}/api/removebg`, { method: "POST", headers: { cookie, "content-type": "text/plain" }, body: "no multipart" });
+check("un cuerpo que no es multipart da 400", texto.status, 400);
+const dos = new FormData();
+dos.append("file", new Blob([PNG], { type: "image/png" }), "uno.png");
+dos.append("file", new Blob([PNG], { type: "image/png" }), "dos.png");
+check("no se aceptan dos ficheros", (await fetch(`${BASE}/api/removebg`, { method: "POST", headers: { cookie }, body: dos })).status, 400);
+const sobrescribe = new FormData();
+sobrescribe.append("file", new Blob([PNG], { type: "image/png" }), "uno.png");
+sobrescribe.append("file", "texto que intenta sobrescribirlo");
+check("un campo no puede sobrescribir el fichero", (await fetch(`${BASE}/api/removebg`, { method: "POST", headers: { cookie }, body: sobrescribe })).status, 400);
+const svgAislado = await procesar("/api/vectorize", { cookie, datos: PNG });
+check("el SVG se fuerza a descarga", /^attachment; filename=/.test(svgAislado.disp ?? ""), true);
+check("y lleva una CSP sandbox sin fuentes", svgAislado.csp, "default-src 'none'; sandbox");
+
 console.log("\nEl nombre del fichero que vuelve");
 // Una cabecera HTTP sólo admite bytes 0–255, así que un nombre con acentos o con
 // un salto de línea es por donde se cuela una cabecera entera si nadie lo mira.

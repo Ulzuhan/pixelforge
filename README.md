@@ -12,8 +12,8 @@ on your machine and keeps nothing.
   matting and post-processing are on by default and can be turned off per job.
 - **Vectorization** — [vtracer](https://github.com/visioncortex/vtracer) turns a raster
   image into an SVG that scales to a billboard.
-- **Nothing is stored.** Uploads live in `.pixelforge-tmp/` for as long as the job takes
-  and are swept on startup. There is no database and no user table.
+- **Nothing is stored.** Uploads live in a private configurable temporary directory for as long as the job takes
+  and are swept at startup and every 30 minutes. There is no database and no user table.
 
 ## Sign-in
 
@@ -52,8 +52,11 @@ are not.
 | `PIXELFORGE_OIDC_REDIRECT_URI` | Must match one of the URIs registered in the provider. |
 | `PIXELFORGE_OIDC_PUBLIC_BASE` | The provider as the browser sees it. |
 | `PIXELFORGE_OIDC_INTERNAL_BASE` | The provider as this server sees it — redeeming the authorization code never leaves the internal network. |
+| `PIXELFORGE_SESSION_TTL_HOURS` | Session lifetime, clamped to 1–24 h; default 12. |
+| `PIXELFORGE_PYTHON` | Absolute path to the audited Python interpreter. |
+| `PIXELFORGE_TMP_DIR` | Private temporary workspace; defaults to `.pixelforge-tmp`. |
 
-`HOME` decides where the Python venv is looked for (`$HOME/.pixelforge-venv`).
+`PIXELFORGE_PYTHON` selects the interpreter; without it the development fallback is `$HOME/.pixelforge-venv/bin/python3`. Production should set it explicitly.
 
 ## API
 
@@ -64,14 +67,16 @@ are not.
 
 ## Limits
 
-Two of them, and they exist for the same reason: this app is the only one here that
+These controls exist for the same reason: this app is the only one here that
 spends real CPU and real memory on a request.
 
 | Variable | Default | What it bounds |
 |---|---|---|
 | `PIXELFORGE_MAX_PIXELS` | `40000000` | Pixels in the uploaded image, checked from the header before decoding |
+| `PIXELFORGE_MAX_OUTPUT_BYTES` | `268435456` | Maximum generated PNG or SVG before Node reads it |
 | `PIXELFORGE_MAX_JOBS` | `2` | Python processes running at once |
 | `PIXELFORGE_MAX_QUEUE` | `6` | Requests waiting for a turn; beyond that, 503 with `Retry-After` |
+| `PIXELFORGE_MAX_REQUESTS_PER_HOUR` | `30` | Requests admitted per signed identity and client IP each hour |
 
 The pixel budget is not the same thing as the 50 MB upload cap, and that difference
 is the whole point: a flat-colour 8000×8000 PNG is 197 KB on disk and 64 million
@@ -107,4 +112,4 @@ to exercise a route without standing up an identity provider for every run.
 ## Stack
 
 Next.js 16 · React 19 · Tailwind CSS v4 · TypeScript, with `rembg` + `vtracer` + Pillow
-behind them. In production it runs as a systemd user service on port 3458.
+behind them. Deployment recipes for Docker Compose and a hardened systemd user service are in [`DEPLOYMENT.md`](DEPLOYMENT.md).

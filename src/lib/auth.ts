@@ -16,7 +16,11 @@ import { cookies } from "next/headers";
 import { oidcConfigured, type OidcIdentity } from "@/lib/oidc";
 
 export const SESSION_COOKIE = "pixelforge_session";
-const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const requestedTtl = Number(process.env.PIXELFORGE_SESSION_TTL_HOURS ?? 12);
+const SESSION_TTL_HOURS = Number.isFinite(requestedTtl)
+  ? Math.min(24, Math.max(1, requestedTtl))
+  : 12;
+const SESSION_TTL_MS = SESSION_TTL_HOURS * 60 * 60 * 1000;
 
 export interface Account {
   sub: string;
@@ -25,7 +29,8 @@ export interface Account {
 }
 
 function secret(): string | null {
-  return process.env.PIXELFORGE_SESSION_SECRET?.trim() || null;
+  const value = process.env.PIXELFORGE_SESSION_SECRET?.trim();
+  return value && Buffer.byteLength(value, "utf8") >= 32 ? value : null;
 }
 
 /** Without a signing secret and an OIDC client, nobody can get in at all. */
@@ -66,7 +71,7 @@ export function readToken(token: string | undefined): Account | null {
   try {
     const claims = JSON.parse(Buffer.from(payload, "base64url").toString());
     if (typeof claims.exp !== "number" || claims.exp <= Date.now()) return null;
-    if (typeof claims.sub !== "string" || typeof claims.email !== "string") return null;
+    if (typeof claims.sub !== "string" || !claims.sub || claims.sub.length > 256 || typeof claims.email !== "string" || !claims.email || claims.email.length > 320 || (claims.name !== undefined && (typeof claims.name !== "string" || claims.name.length > 256))) return null;
     return { sub: claims.sub, email: claims.email, name: claims.name };
   } catch {
     return null;

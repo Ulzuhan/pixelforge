@@ -1,0 +1,8 @@
+.git
+.next
+node_modules
+.pixelforge-tmp
+.env
+.env.local
+__pycache__
+*.pyc

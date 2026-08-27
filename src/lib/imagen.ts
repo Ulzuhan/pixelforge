@@ -49,6 +49,8 @@ export function pareceImagen(datos: Buffer): boolean {
  * número escrito a pelo, y en cuanto alguien cambiase la variable el mensaje
  * habría empezado a mentir.
  */
-export const MAX_PIXELS = Number(process.env.PIXELFORGE_MAX_PIXELS || 40_000_000);
+import { positiveInt } from "@/lib/request-security";
+
+export const MAX_PIXELS = positiveInt("PIXELFORGE_MAX_PIXELS", 40_000_000, 100_000_000);
 
 export const megapixeles = () => Math.round(MAX_PIXELS / 1_000_000);

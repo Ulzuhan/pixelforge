@@ -1,19 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { megapixeles, pareceImagen } from "@/lib/imagen";
 import { ColaLlena, conTurno } from "@/lib/turnos";
-import { writeFile, mkdir } from "fs/promises";
+import { chmod, writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import { join } from "path";
 import { randomBytes } from "crypto";
 import { execFile } from "child_process";
 import { promisify } from "util";
-import { requireAccount } from "@/lib/auth";
+import { currentAccount } from "@/lib/auth";
+import { clientIp, MAX_OUTPUT_BYTES, MAX_UPLOAD_BYTES, positiveInt, rejectOversizedBody, sameOrigin } from "@/lib/request-security";
+import { rateLimit } from "@/lib/ratelimit";
+import { MultipartError, parseMultipart } from "@/lib/multipart";
 
 const execFileAsync = promisify(execFile);
 
-const TMP_DIR = join(process.cwd(), ".pixelforge-tmp");
+const TMP_DIR = process.env.PIXELFORGE_TMP_DIR?.trim() || join(process.cwd(), ".pixelforge-tmp");
 
-const PYTHON = join(process.env.HOME || "/home/ulzuhan", ".pixelforge-venv", "bin", "python3");
+const PYTHON = process.env.PIXELFORGE_PYTHON?.trim() || join(process.env.HOME || "/nonexistent", ".pixelforge-venv", "bin", "python3");
 const PROCESSOR = join(process.cwd(), "python", "process.py");
 
 /**
@@ -53,7 +56,7 @@ function cabeceraNombre(nombre: string, sufijo: string): string {
     (c) => "%" + c.charCodeAt(0).toString(16).toUpperCase()
   );
 
-  return `inline; filename="${ascii}"; filename*=UTF-8''${utf8}`;
+  return `attachment; filename="${ascii}"; filename*=UTF-8''${utf8}`;
 }
 
 /**
@@ -84,8 +87,17 @@ cleanupOld();
 export async function POST(request: NextRequest) {
   // Quitar un fondo ejecuta una red neuronal varios segundos: abierto a
   // internet, esto es cómputo gratis para quien lo encuentre.
-  const unauthorized = await requireAccount();
-  if (unauthorized) return unauthorized;
+  const account = await currentAccount();
+  if (!account) return NextResponse.json({ error: "Sign in to use this" }, { status: 401 });
+  const originError = sameOrigin(request);
+  if (originError) return originError;
+  const sizeError = rejectOversizedBody(request);
+  if (sizeError) return sizeError;
+  const requestLimit = positiveInt("PIXELFORGE_MAX_REQUESTS_PER_HOUR", 30, 1000);
+  const accountLimited = rateLimit("account:" + account.sub, requestLimit);
+  if (accountLimited) return accountLimited;
+  const ipLimited = rateLimit("ip:" + clientIp(request), requestLimit);
+  if (ipLimited) return ipLimited;
 
   // `workDir` se declara aquí y no dentro del try para que el `finally` pueda
   // verlo: antes, si el proceso de Python fallaba o agotaba los 3 minutos, la
@@ -94,7 +106,7 @@ export async function POST(request: NextRequest) {
   let workDir: string | null = null;
 
   try {
-    const formData = await request.formData();
+    const formData = await parseMultipart(request);
     const file = formData.get("file") as File | null;
     // Los diez ajustes van tal cual a `argparse`, que con un valor que no sabe
     // leer sale con error y deja aquí un 500. Medido: de diez valores raros
@@ -148,7 +160,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    if (file.size > 50 * 1024 * 1024) {
+    if (file.size > MAX_UPLOAD_BYTES) {
       return NextResponse.json({ error: "File too large. Max 50MB." }, { status: 413 });
     }
 
@@ -164,8 +176,10 @@ export async function POST(request: NextRequest) {
     }
 
     const id = randomBytes(6).toString("hex");
+    await mkdir(TMP_DIR, { recursive: true, mode: 0o700 });
+    await chmod(TMP_DIR, 0o700);
     workDir = join(TMP_DIR, id);
-    await mkdir(workDir, { recursive: true });
+    await mkdir(workDir, { recursive: false, mode: 0o700 });
 
     const ext = file.name.match(/\.(png|jpe?g|webp|bmp|tiff?)$/i)?.[0] || ".png";
     const inputPath = join(workDir, `input${ext}`);
@@ -181,7 +195,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    await writeFile(inputPath, buffer);
+    await writeFile(inputPath, buffer, { mode: 0o600 });
 
     // Build vtracer arguments with all quality parameters
     const args = [
@@ -219,7 +233,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { readFile } = await import("fs/promises");
+    const { readFile, stat } = await import("fs/promises");
+    if ((await stat(outputPath)).size > MAX_OUTPUT_BYTES) {
+      return NextResponse.json({ error: "Processed output is too large" }, { status: 413 });
+    }
     const outputBuffer = await readFile(outputPath);
 
 
@@ -228,9 +245,13 @@ export async function POST(request: NextRequest) {
       headers: {
         "Content-Type": "image/svg+xml",
         "Content-Disposition": cabeceraNombre(file.name, ".svg"),
+        "Content-Security-Policy": "default-src 'none'; sandbox",
       },
     });
   } catch (error) {
+    if (error instanceof MultipartError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     // La cola llena no es un fallo del servidor: es que ahora mismo no hay sitio.
     // Se dice cuándo volver, en vez de un 500 que no explica nada.
     if (error instanceof ColaLlena) {

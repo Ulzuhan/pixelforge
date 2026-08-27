@@ -12,7 +12,7 @@ import { readFileSync } from "node:fs";
 import { deflateSync } from "node:zlib";
 
 export const BASE = process.env.BASE || "http://127.0.0.1:3991";
-export const SECRETO = process.env.PIXELFORGE_SESSION_SECRET || "secreto-de-pruebas";
+export const SECRETO = process.env.PIXELFORGE_SESSION_SECRET || "secreto-de-pruebas-pixelforge-32-bytes-minimo";
 
 let pasan = 0;
 let fallan = 0;
@@ -99,14 +99,14 @@ export function leer(ruta) {
 }
 
 /** Envía una imagen a una de las dos rutas de proceso. */
-export async function procesar(ruta, { cookie, datos, nombre = "prueba.png", tipo = "image/png", campos = {} } = {}) {
+export async function procesar(ruta, { cookie, datos, nombre = "prueba.png", tipo = "image/png", campos = {}, headers = {} } = {}) {
   const fd = new FormData();
   if (datos !== null) fd.set("file", new Blob([datos], { type: tipo }), nombre);
   for (const [k, v] of Object.entries(campos)) fd.set(k, v);
   const res = await fetch(BASE + ruta, {
     method: "POST",
     body: fd,
-    ...(cookie ? { headers: { cookie } } : {}),
+    ...((cookie || Object.keys(headers).length) ? { headers: { ...headers, ...(cookie ? { cookie } : {}) } } : {}),
   });
   const bytes = await res.arrayBuffer();
   let cuerpo = null;
@@ -120,6 +120,7 @@ export async function procesar(ruta, { cookie, datos, nombre = "prueba.png", tip
     tipo: res.headers.get("content-type"),
     disp: res.headers.get("content-disposition"),
     nosniff: res.headers.get("x-content-type-options"),
+    csp: res.headers.get("content-security-policy"),
     // Si un nombre de fichero hostil llegó a fabricar una cabecera de verdad.
     inyectada: res.headers.get("x-inyectada") !== null,
   };

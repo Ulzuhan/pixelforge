@@ -26,7 +26,15 @@ import sys
 # `Image.open` sólo lee la cabecera, así que preguntar el tamaño no cuesta nada:
 # la comprobación va antes de descodificar y antes de importar rembg, que es lo
 # lento. Cuarenta megapíxeles dejan pasar cualquier foto de móvil de hoy.
-MAX_PIXELS = int(os.environ.get("PIXELFORGE_MAX_PIXELS", 40_000_000))
+def positive_limit(name, fallback, maximum):
+    try:
+        value = int(os.environ.get(name, fallback))
+        return value if 0 < value <= maximum else fallback
+    except (TypeError, ValueError):
+        return fallback
+
+
+MAX_PIXELS = positive_limit("PIXELFORGE_MAX_PIXELS", 40_000_000, 100_000_000)
 
 # Marcador para que la ruta sepa distinguir esto de un fallo cualquiera y conteste
 # 413 en vez de 500. Va por stderr, que es lo único que cruza.
@@ -39,16 +47,22 @@ def abrir_acotada(ruta):
     from PIL import Image
 
     try:
+        with Image.open(ruta) as probe:
+            ancho, alto = probe.size
+            if ancho <= 0 or alto <= 0:
+                raise ValueError("invalid dimensions")
+            if ancho * alto > MAX_PIXELS:
+                print(f"{MARCA_TAMANO} {ancho}x{alto}", file=sys.stderr)
+                sys.exit(2)
+            probe.verify()
         img = Image.open(ruta)
-        ancho, alto = img.size
+    except SystemExit:
+        raise
     except Exception:
         # Que un fichero no se pueda abrir no es un fallo del servidor: es que lo
         # que han subido no era una imagen. La ruta lo traduce a 400.
         print(MARCA_NO_IMAGEN, file=sys.stderr)
         sys.exit(3)
-    if ancho * alto > MAX_PIXELS:
-        print(f"{MARCA_TAMANO} {ancho}x{alto}", file=sys.stderr)
-        sys.exit(2)
     return img
 
 

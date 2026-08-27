@@ -19,8 +19,10 @@ cd "$(dirname "$0")/.."
 
 PUERTO="${PORT:-3991}"
 export BASE="http://127.0.0.1:$PUERTO"
-export PIXELFORGE_SESSION_SECRET="${PIXELFORGE_SESSION_SECRET:-secreto-de-pruebas}"
+export PIXELFORGE_SESSION_SECRET="${PIXELFORGE_SESSION_SECRET:-secreto-de-pruebas-pixelforge-32-bytes-minimo}"
 LOG="$(mktemp)"
+RAIZ_PRUEBAS="$(mktemp -d)"
+TEMPORALES="$RAIZ_PRUEBAS/uploads"
 
 TODAS=(auth process)
 SUITES=("${@:-${TODAS[@]}}")
@@ -54,8 +56,11 @@ arrancar() {
   # espera) haría falta lanzar nueve peticiones pesadas para ver un rechazo, y el
   # test tardaría minutos. Con 2 y 1, cuatro peticiones bastan y el resultado es
   # el mismo mecanismo.
+  rm -rf "$TEMPORALES"
+  PIXELFORGE_TMP_DIR="$TEMPORALES" \
   PIXELFORGE_MAX_JOBS="${PIXELFORGE_MAX_JOBS:-2}" \
     PIXELFORGE_MAX_QUEUE="${PIXELFORGE_MAX_QUEUE:-1}" \
+    PIXELFORGE_MAX_REQUESTS_PER_HOUR=1000 \
     PIXELFORGE_SESSION_SECRET="$PIXELFORGE_SESSION_SECRET" \
     PIXELFORGE_OIDC_CLIENT_ID=pruebas \
     PIXELFORGE_OIDC_CLIENT_SECRET=pruebas \
@@ -63,7 +68,9 @@ arrancar() {
     PIXELFORGE_OIDC_PUBLIC_BASE="http://127.0.0.1:9999" \
     PIXELFORGE_OIDC_INTERNAL_BASE="http://127.0.0.1:9999" \
     PIXELFORGE_OIDC_APP_SLUG=pixelforge \
-    ./node_modules/.bin/next start -p "$PUERTO" >"$LOG" 2>&1 &
+    PORT="$PUERTO" \
+    HOSTNAME=127.0.0.1 \
+    node .next/standalone/server.js >"$LOG" 2>&1 &
   servidor=$!
 
   for _ in $(seq 1 90); do
@@ -102,10 +109,15 @@ for suite in "${SUITES[@]}"; do
   estado=$?
   echo "$salida" | tail -1
   [ $estado -ne 0 ] && { echo "$salida" | grep -E "✗" | head -10; fallo=1; }
+  if [ "$suite" = process ]; then
+    [ "$(stat -c %a "$TEMPORALES" 2>/dev/null)" = 700 ] || { echo "  ✗ temporales sin modo 0700"; fallo=1; }
+    [ -z "$(find "$TEMPORALES" -mindepth 1 -print -quit 2>/dev/null)" ] || { echo "  ✗ quedaron imágenes temporales"; fallo=1; }
+  fi
   parar
 done
 
 rm -f "$LOG"
+rm -rf "$RAIZ_PRUEBAS"
 if [ $fallo -ne 0 ]; then
   echo
   echo "HAY FALLOS"
