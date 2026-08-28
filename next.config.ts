@@ -12,6 +12,10 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   output: "standalone",
+  // El directorio de trabajo nunca dentro del artefacto: son imágenes de quien
+  // las sube, vivas durante una petición. Mismo criterio que TabUp y SecretDrop.
+  outputFileTracingRoot: import.meta.dirname,
+  outputFileTracingExcludes: { "**": ["./.pixelforge-tmp/**/*"] },
   turbopack: { root: import.meta.dirname },
   async headers() {
     return [

@@ -12,9 +12,35 @@ const display = Space_Grotesk({ variable: "--font-display", weight: ["500", "700
 const sans = Inter({ variable: "--font-sans", weight: ["400", "500"], subsets: ["latin"] });
 const mono = JetBrains_Mono({ variable: "--font-mono", weight: ["400", "500"], subsets: ["latin"] });
 
+/**
+ * The public origin, for canonical and social previews.
+ *
+ * It comes from PIXELFORGE_PUBLIC_HOST, which already exists for the origin
+ * check: no new variable, and whoever deploys this on their own domain gets
+ * their own canonical without touching code. Unset, none is emitted — Next
+ * would otherwise resolve relative URLs against localhost, and a canonical
+ * pointing at localhost is worse than no canonical at all.
+ */
+const publicHost = process.env.PIXELFORGE_PUBLIC_HOST?.trim();
+const base = publicHost ? new URL(`https://${publicHost}`) : undefined;
+
+const TITLE = "Pixelforge — background removal and vectorisation, self-hosted";
+const DESCRIPTION =
+  "Cut the background out of a photo or turn a logo into a scalable vector, on hardware you control. Full resolution, no watermark, nothing kept afterwards.";
+
 export const metadata: Metadata = {
-  title: "Pixelforge — Image Tools",
-  description: "Remove backgrounds, vectorize logos. Self-hosted and private.",
+  ...(base ? { metadataBase: base, alternates: { canonical: "/" } } : {}),
+  title: TITLE,
+  description: DESCRIPTION,
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    type: "website",
+    siteName: "Pixelforge",
+    locale: "en_US",
+    ...(base ? { url: "/", images: [{ url: "/og.jpg", width: 760, height: 475, alt: "Pixelforge: a photo before and after its background is removed" }] } : {}),
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({
