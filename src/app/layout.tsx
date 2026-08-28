@@ -3,6 +3,9 @@ import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { KaiCorpFooter } from "@/components/kaicorp-footer";
 import { KaiCorpHeader } from "@/components/kaicorp-header";
+import { KaiCorpAccountMenu } from "@/components/kaicorp-account-menu";
+import { currentAccount } from "@/lib/auth";
+import { accountUrl } from "@/lib/oidc";
 
 // Force dynamic rendering — prevents aggressive caching by Cloudflare
 export const dynamic = "force-dynamic";
@@ -43,15 +46,26 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image" },
 };
 
-export default function RootLayout({
+/**
+ * La cuenta se resuelve aquí, y ésa es la diferencia.
+ *
+ * El correo y el botón de salir vivían dentro de `tool.tsx`, o sea **fuera** de la
+ * cabecera común: la única de las cinco aplicaciones donde la cuenta no estaba donde
+ * está en las otras cuatro. Ahora es el mismo menú que las demás, en el mismo sitio,
+ * y la herramienta se queda con lo suyo.
+ */
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const account = await currentAccount();
   return (
     <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <KaiCorpHeader app="Pixelforge" />
+        <KaiCorpHeader app="Pixelforge">
+          {account && <KaiCorpAccountMenu email={account.email} accountUrl={accountUrl()} />}
+        </KaiCorpHeader>
         {children}
         <KaiCorpFooter current="pixelforge" />
       </body>

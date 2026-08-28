@@ -15,5 +15,5 @@ export const dynamic = "force-dynamic";
 export default async function Home() {
   const account = await currentAccount();
   if (!account) return <Landing enrollUrl={enrollUrl()} />;
-  return <Tool email={account.email} />;
+  return <Tool />;
 }

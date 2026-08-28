@@ -38,7 +38,7 @@ const BG_MODELS = [
  * La herramienta. Antes era la portada; ahora la portada decide en el servidor
  * si enseñar esto o la landing, según haya sesión.
  */
-export function Tool({ email }: { email: string }) {
+export function Tool() {
   const [mode, setMode] = useState<ToolMode>("removebg");
   const [model, setModel] = useState("isnet-general-use");
   const [alphaMatting, setAlphaMatting] = useState(true);
@@ -257,19 +257,9 @@ export function Tool({ email }: { email: string }) {
             Remove backgrounds &middot; Vectorize logos &middot; Self-hosted &amp; private
           </p>
         </div>
-        <div className="shrink-0 flex items-center gap-2 text-xs text-muted">
-          <span className="hidden sm:inline max-w-[14ch] truncate" title={email}>{email}</span>
-          <button
-            onClick={async () => {
-              const res = await fetch("/api/auth/logout", { method: "POST" });
-              const { next } = await res.json().catch(() => ({ next: "/" }));
-              window.location.href = next ?? "/";
-            }}
-            className="rounded-lg px-3 py-1.5 hover:bg-surface transition-colors"
-          >
-            Sign out
-          </button>
-        </div>
+        {/* El correo y la salida estaban aquí, dentro de la herramienta y fuera de la
+            cabecera común. Ahora son el menú de cuenta compartido, en el mismo sitio
+            que en las otras cuatro aplicaciones. */}
       </div>
 
       {/* Tool Mode Tabs */}
