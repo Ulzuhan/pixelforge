@@ -8,6 +8,7 @@ jsonschema==4.26.0
 jsonschema-specifications==2025.9.1
 lazy-loader==0.5
 llvmlite==0.47.0
+msgpack==1.2.1
 networkx==3.6.1
 numba==0.65.1
 numpy==2.4.6
