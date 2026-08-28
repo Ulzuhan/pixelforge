@@ -68,6 +68,7 @@ arrancar() {
     PIXELFORGE_OIDC_PUBLIC_BASE="http://127.0.0.1:9999" \
     PIXELFORGE_OIDC_INTERNAL_BASE="http://127.0.0.1:9999" \
     PIXELFORGE_OIDC_APP_SLUG=pixelforge \
+    PIXELFORGE_ENROLL_URL="https://idp.example.invalid/if/flow/enroll-pixelforge/" \
     PORT="$PUERTO" \
     HOSTNAME=127.0.0.1 \
     node .next/standalone/server.js >"$LOG" 2>&1 &

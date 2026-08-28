@@ -1,5 +1,6 @@
 import { currentAccount } from "@/lib/auth";
 import { Landing } from "@/components/landing";
+import { enrollUrl } from "@/lib/oidc";
 import { Tool } from "./tool";
 
 /**
@@ -13,6 +14,6 @@ export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const account = await currentAccount();
-  if (!account) return <Landing />;
+  if (!account) return <Landing enrollUrl={enrollUrl()} />;
   return <Tool email={account.email} />;
 }

@@ -56,6 +56,7 @@ are not.
 | `PIXELFORGE_OIDC_REDIRECT_URI` | Must match one of the URIs registered in the provider. |
 | `PIXELFORGE_OIDC_PUBLIC_BASE` | The provider as the browser sees it. |
 | `PIXELFORGE_OIDC_INTERNAL_BASE` | The provider as this server sees it — redeeming the authorization code never leaves the internal network. |
+| `PIXELFORGE_ENROLL_URL` | Where somebody with no account is sent to ask for one: your provider's enrolment flow. It is the landing page's "Request an account" button, and without it there is no button — which is right when the provider has no self-service sign-up. It used to be a constant in the source pointing at *our* provider, so anyone deploying this handed their visitors a sign-up link into a stranger's identity provider. |
 | `PIXELFORGE_PUBLIC_HOST` | Public hostname the origin check compares against. Unset, the incoming `Host` is used, which is right behind a tunnel that preserves it — verified. Only needed behind a proxy that rewrites `Host` with an internal name. |
 | `PIXELFORGE_SESSION_TTL_HOURS` | Session lifetime, clamped to 1–24 h; default 12. |
 | `PIXELFORGE_PYTHON` | Absolute path to the audited Python interpreter. |
