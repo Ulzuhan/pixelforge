@@ -24,7 +24,11 @@ RUN apt-get update && apt-get upgrade -y \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx /opt/yarn* /usr/local/bin/yarn /usr/local/bin/yarnpkg
 COPY python/requirements.lock /tmp/requirements.lock
-RUN /opt/venv/bin/pip install --no-cache-dir -r /tmp/requirements.lock && rm /tmp/requirements.lock
+# pip y setuptools al día ANTES de instalar: python3-venv de bookworm siembra
+# el venv con el setuptools 66 del sistema, que arrastra un RCE conocido
+# (CVE-2024-6345, arreglado en 70) — lo encontró la puerta de Trivy.
+RUN /opt/venv/bin/pip install --no-cache-dir --upgrade pip setuptools \
+    && /opt/venv/bin/pip install --no-cache-dir -r /tmp/requirements.lock && rm /tmp/requirements.lock
 WORKDIR /app
 # uid fijo y alto a propósito: es la política de las cinco imágenes (10001), no
 # choca con usuarios del sistema del host y los bind mounts saben a quién
