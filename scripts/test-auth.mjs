@@ -73,7 +73,20 @@ for (const destino of [
 // Y uno interno sí tiene que sobrevivir: un saneado que se lo come todo rompe
 // volver a donde estabas, que es para lo que existe el parámetro.
 const interno = await fetch(`${BASE}/api/auth/login?next=%2Ftrabajo`, { redirect: "manual" });
-check("el desvío interno sigue siendo interno", (interno.headers.get("location") ?? "").startsWith("http://127.0.0.1:9999"), true);
+const destinoLogin = interno.headers.get("location") ?? "";
+check("el desvío interno sigue siendo interno", destinoLogin.startsWith("http://127.0.0.1:9999"), true);
+
+/**
+ * Y a DÓNDE dentro del proveedor. El idp de pruebas anuncia rutas de Keycloak
+ * (`/protocol/openid-connect/auth`), que no se parecen a las de Authentik
+ * (`/application/o/authorize/`). Que el desvío caiga en la primera es la prueba
+ * de que esta aplicación obedece al documento del proveedor y no lleva ninguna
+ * ruta escrita a mano: el día que alguien vuelva a escribirla, esto falla.
+ */
+check("y va a la ruta que ANUNCIA el proveedor, no a una escrita a mano",
+  destinoLogin.includes("/protocol/openid-connect/auth"), true);
+check("sin rastro de la forma de ningún proveedor concreto",
+  destinoLogin.includes("/application/o/authorize"), false);
 
 console.log("\nSalir");
 const csrfSalida = await fetch(`${BASE}/api/auth/logout`, { method: "POST", headers: { cookie: buena, origin: "https://hermano.example", "sec-fetch-site": "same-site" }, redirect: "manual" });

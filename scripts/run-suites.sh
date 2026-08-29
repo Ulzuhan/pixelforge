@@ -29,6 +29,30 @@ SUITES=("${@:-${TODAS[@]}}")
 [ $# -gt 0 ] && SUITES=("$@")
 
 servidor=""
+idp=""
+
+# El proveedor de identidad de mentira. Desde que los endpoints se descubren,
+# `/api/auth/login` hace una petición ANTES de redirigir: sin alguien
+# escuchando, la suite fallaba por algo que no estaba probando. Y su documento
+# usa rutas de Keycloak a propósito, así que probar el desvío prueba también
+# que la aplicación obedece al proveedor en vez de llevar rutas escritas.
+arrancar_idp() {
+  [ -z "$idp" ] || return 0
+  node scripts/idp-falso.mjs 9999 /application/o/pixelforge/ >/dev/null 2>&1 &
+  idp=$!
+  for _ in $(seq 1 40); do
+    curl -sf -o /dev/null "http://127.0.0.1:9999/application/o/pixelforge/.well-known/openid-configuration" && return 0
+    sleep 0.25
+  done
+  echo "el idp de pruebas no arrancó"; return 1
+}
+
+parar_idp() {
+  [ -n "$idp" ] || return 0
+  kill "$idp" 2>/dev/null
+  wait "$idp" 2>/dev/null
+  idp=""
+}
 
 parar() {
   [ -n "$servidor" ] || return 0
@@ -38,16 +62,18 @@ parar() {
   kill -- -"$servidor" 2>/dev/null || kill "$servidor" 2>/dev/null
   wait "$servidor" 2>/dev/null
   servidor=""
+  parar_idp
   for _ in $(seq 1 40); do
     ss -tln 2>/dev/null | grep -qE ":$PUERTO " || return 0
     sleep 0.25
   done
   echo "aviso: el puerto $PUERTO sigue ocupado"
 }
-trap 'parar; exit 130' INT TERM
+trap 'parar; parar_idp; exit 130' INT TERM
 
 arrancar() {
   ss -tln 2>/dev/null | grep -qE ":$PUERTO " && { echo "el puerto $PUERTO ya está ocupado"; return 1; }
+  arrancar_idp || return 1
 
   # Los valores de OIDC son de mentira a propósito: ninguna suite completa un
   # inicio de sesión contra el proveedor, sólo comprueban que el desvío se
@@ -65,9 +91,8 @@ arrancar() {
     PIXELFORGE_OIDC_CLIENT_ID=pruebas \
     PIXELFORGE_OIDC_CLIENT_SECRET=pruebas \
     PIXELFORGE_OIDC_REDIRECT_URI="$BASE/api/auth/callback" \
-    PIXELFORGE_OIDC_PUBLIC_BASE="http://127.0.0.1:9999" \
+    PIXELFORGE_OIDC_ISSUER="http://127.0.0.1:9999/application/o/pixelforge/" \
     PIXELFORGE_OIDC_INTERNAL_BASE="http://127.0.0.1:9999" \
-    PIXELFORGE_OIDC_APP_SLUG=pixelforge \
     PIXELFORGE_ENROLL_URL="https://idp.example.invalid/if/flow/enroll-pixelforge/" \
     PORT="$PUERTO" \
     HOSTNAME=127.0.0.1 \

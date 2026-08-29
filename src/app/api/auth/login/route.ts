@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
   const next = safeNext(request.nextUrl.searchParams.get("next"));
 
   const response = NextResponse.redirect(
-    authorizeUrl(cfg, { state, codeChallenge: challengeFor(verifier) })
+    await authorizeUrl(cfg, { state, codeChallenge: challengeFor(verifier) })
   );
   response.cookies.set("pixelforge_oidc", JSON.stringify({ verifier, state, next }), {
     httpOnly: true,
