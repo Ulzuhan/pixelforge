@@ -91,6 +91,12 @@ jobs:
           # dependencies from scratch.
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # Una release nunca reutiliza la capa de apt de ayer. El 02-09 la
+          # v0.7.2 salió en rojo por una libexpat1 que Debian ya había
+          # arreglado: el Dockerfile hace `apt-get upgrade`, pero la caché de
+          # capas devolvió la capa vieja y el upgrade no llegó a ejecutarse.
+          # En main la caché sigue valiendo; en un tag, se construye de cero.
+          no-cache: ${{ startsWith(github.ref, 'refs/tags/') }}
 
       # Un nombre de imagen tiene que ir en minúsculas y github.repository
       # conserva la U del usuario; metadata-action ya lo normaliza para los
