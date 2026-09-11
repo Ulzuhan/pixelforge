@@ -25,8 +25,8 @@ The two expensive routes — `/api/removebg` and `/api/vectorize` — **require 
 That is not about privacy but about the CPU: background removal is a neural network, and
 an open endpoint on the internet is a free GPU-less compute service for whoever finds it.
 
-Accounts come from an **OIDC provider** (Authentik in the deployment this was written
-for, but any provider works). There is no user table: a session is a signed cookie
+Accounts come from an **OIDC provider** — any standard one works, and none of
+their paths are written into the code. There is no user table: a session is a signed cookie
 carrying the identity the provider vouched for. Without the variables below, nobody can
 sign in and the tools stay locked.
 
@@ -123,7 +123,7 @@ not, and `?next=` cannot be pointed off-site. `test-process` covers what gets
 uploaded and what it costs: the pixel budget, the queue, files that are not images,
 the vtracer settings, and the filename that comes back in `Content-Disposition`.
 
-There is no local sign-in — Authentik owns identity — so the suites mint their
+There is no local sign-in — the OIDC provider owns identity — so the suites mint their
 session cookie with the same secret the test server runs with. It is the only way
 to exercise a route without standing up an identity provider for every run.
 

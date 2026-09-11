@@ -1,7 +1,7 @@
 /**
  * Lo que comparten las suites.
  *
- * No hay login local en esta aplicación: la identidad la lleva Authentik entera.
+ * No hay login local en esta aplicación: la identidad la lleva entera el proveedor OIDC.
  * Así que para probar cualquier cosa hay que acuñar la cookie de sesión con el
  * mismo secreto que el servidor de pruebas, que es exactamente lo que hace
  * `sesion()`. No es un atajo sospechoso: es la única forma de ejercitar las rutas
