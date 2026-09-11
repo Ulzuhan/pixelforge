@@ -1,6 +1,6 @@
 {
   "name": "pixelforge",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "description": "Background removal and image vectorisation on your own hardware: rembg and vtracer behind a Next.js front, with strict limits on every job.",
   "license": "MIT",
   "author": "Ulzuhan",
@@ -31,7 +31,7 @@
   },
   "dependencies": {
     "busboy": "^1.6.0",
-    "next": "^16.2.12",
+    "next": "^16.3.5",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
