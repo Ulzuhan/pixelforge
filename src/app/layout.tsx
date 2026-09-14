@@ -11,8 +11,9 @@ import { accountUrl } from "@/lib/oidc";
 export const dynamic = "force-dynamic";
 
 // La marca: display para titulares, sans para lectura, mono para etiquetas.
-const display = Space_Grotesk({ variable: "--font-display", weight: ["500", "700"], subsets: ["latin"] });
-const sans = Inter({ variable: "--font-sans", weight: ["400", "500"], subsets: ["latin"] });
+// Los nombres de las variables son los que espera kaicorp.css.
+const display = Space_Grotesk({ variable: "--font-display", weight: ["500", "600", "700"], subsets: ["latin"] });
+const sans = Inter({ variable: "--font-sans", weight: ["400", "500", "600"], subsets: ["latin"] });
 const mono = JetBrains_Mono({ variable: "--font-mono", weight: ["400", "500"], subsets: ["latin"] });
 
 /**
@@ -41,18 +42,14 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "Pixelforge",
     locale: "en_US",
-    ...(base ? { url: "/", images: [{ url: "/og.jpg", width: 760, height: 475, alt: "Pixelforge: a photo before and after its background is removed" }] } : {}),
+    ...(base ? { url: "/", images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Pixelforge: a photo before and after its background is removed" }] } : {}),
   },
   twitter: { card: "summary_large_image" },
 };
 
 /**
- * La cuenta se resuelve aquí, y ésa es la diferencia.
- *
- * El correo y el botón de salir vivían dentro de `tool.tsx`, o sea **fuera** de la
- * cabecera común: la única de las cinco aplicaciones donde la cuenta no estaba donde
- * está en las otras cuatro. Ahora es el mismo menú que las demás, en el mismo sitio,
- * y la herramienta se queda con lo suyo.
+ * La cuenta se resuelve aquí: el menú de cuenta es el cromado común de las
+ * cinco aplicaciones, en el mismo sitio en todas.
  */
 export default async function RootLayout({
   children,
@@ -62,9 +59,9 @@ export default async function RootLayout({
   const account = await currentAccount();
   return (
     <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+      <body className="flex min-h-full flex-col bg-bg text-ink">
         <KaiCorpHeader app="Pixelforge">
-          {account && <KaiCorpAccountMenu email={account.email} accountUrl={accountUrl()} />}
+          {account && <KaiCorpAccountMenu email={account.email} name={account.name} accountUrl={accountUrl()} />}
         </KaiCorpHeader>
         {children}
         <KaiCorpFooter current="pixelforge" />

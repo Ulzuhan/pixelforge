@@ -18,6 +18,10 @@ on your machine and keeps nothing.
   image into an SVG that scales to a billboard.
 - **Nothing is stored.** Uploads live in a private configurable temporary directory for as long as the job takes
   and are swept at startup and every 30 minutes. There is no database and no user table.
+- **A workspace, not a form.** Drop an image anywhere on the page, paste it (⌘V) or pick
+  it; run with ⌘⏎; drag a slider across the before and after; check the cut-out over a
+  checkerboard, white, black or any colour; change a setting and run again on the same
+  image without uploading it twice.
 
 ## Sign-in
 

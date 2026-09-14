@@ -1,7 +1,7 @@
 import { currentAccount } from "@/lib/auth";
 import { Landing } from "@/components/landing";
 import { enrollUrl } from "@/lib/oidc";
-import { Tool } from "./tool";
+import { Tool } from "@/components/tool/tool";
 
 /**
  * The front door, decided on the server: a stranger gets the landing page,
