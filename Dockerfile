@@ -5,7 +5,7 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM python:3.14-slim-bookworm AS runtime
+FROM python:3.13-slim-bookworm AS runtime
 COPY --from=build /usr/local/bin/node /usr/local/bin/node
 ENV NODE_ENV=production HOSTNAME=0.0.0.0 PORT=3458 \
     PIXELFORGE_PYTHON=/opt/venv/bin/python3 PIXELFORGE_TMP_DIR=/work \
@@ -25,7 +25,7 @@ RUN apt-get update && apt-get upgrade -y \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx /opt/yarn* /usr/local/bin/yarn /usr/local/bin/yarnpkg
 COPY python/requirements.lock /tmp/requirements.lock
-# El mismo Python 3.14 en CI y en el runtime, con las ruedas del lock.
+# El mismo Python 3.13 en CI y en el runtime, con las ruedas del lock.
 # pip y setuptools al día ANTES de instalar.
 # Y pip FUERA al terminar: el runtime nunca instala nada, y pip vendoriza sus
 # propias dependencias (pip/_vendor/msgpack 1.1.2, con su out-of-bounds
