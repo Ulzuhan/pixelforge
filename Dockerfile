@@ -1,11 +1,12 @@
-FROM node:22-bookworm-slim AS build
+FROM node:24-bookworm-slim AS build
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM node:22-bookworm-slim AS runtime
+FROM python:3.13-slim-bookworm AS runtime
+COPY --from=build /usr/local/bin/node /usr/local/bin/node
 ENV NODE_ENV=production HOSTNAME=0.0.0.0 PORT=3458 \
     PIXELFORGE_PYTHON=/opt/venv/bin/python3 PIXELFORGE_TMP_DIR=/work \
     U2NET_HOME=/models \
@@ -19,14 +20,13 @@ ENV NODE_ENV=production HOSTNAME=0.0.0.0 PORT=3458 \
 # python, nunca npm — su CLI trae node_modules propios que salen en los
 # escáneres y jamás se usarían.
 RUN apt-get update && apt-get upgrade -y \
-    && apt-get install -y --no-install-recommends python3 python3-venv libgomp1 libgl1 libglib2.0-0 ca-certificates \
+    && apt-get install -y --no-install-recommends libstdc++6 libgomp1 libgl1 libglib2.0-0 ca-certificates \
     && python3 -m venv /opt/venv \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx /opt/yarn* /usr/local/bin/yarn /usr/local/bin/yarnpkg
 COPY python/requirements.lock /tmp/requirements.lock
-# pip y setuptools al día ANTES de instalar: python3-venv de bookworm siembra
-# el venv con el setuptools 66 del sistema, que arrastra un RCE conocido
-# (CVE-2024-6345, arreglado en 70) — lo encontró la puerta de Trivy.
+# El mismo Python 3.13 en CI y en el runtime, con las ruedas del lock.
+# pip y setuptools al día ANTES de instalar.
 # Y pip FUERA al terminar: el runtime nunca instala nada, y pip vendoriza sus
 # propias dependencias (pip/_vendor/msgpack 1.1.2, con su out-of-bounds
 # conocido) que los escáneres ven aunque jamás se ejecuten. Mismo criterio que
@@ -34,7 +34,8 @@ COPY python/requirements.lock /tmp/requirements.lock
 # — pkg_resources sí se importa en tiempo de ejecución.
 RUN /opt/venv/bin/pip install --no-cache-dir --upgrade pip setuptools \
     && /opt/venv/bin/pip install --no-cache-dir -r /tmp/requirements.lock && rm /tmp/requirements.lock \
-    && /opt/venv/bin/pip uninstall -y pip
+    && /opt/venv/bin/pip uninstall -y pip \
+    && python3 -m pip uninstall -y pip
 WORKDIR /app
 # uid fijo y alto a propósito: es la política de las cinco imágenes (10001), no
 # choca con usuarios del sistema del host y los bind mounts saben a quién
