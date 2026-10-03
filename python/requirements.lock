@@ -28,5 +28,5 @@ scipy==1.17.1
 tifffile==2026.3.3
 tqdm==4.67.3
 typing_extensions==4.15.0
-urllib3==2.7.0
+urllib3==2.8.0
 vtracer==0.6.15
