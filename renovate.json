@@ -9,6 +9,12 @@
     {
       "matchUpdateTypes": ["minor", "patch"],
       "groupName": "menores y parches"
+    },
+    {
+      "description": "Keep each brace-expansion consumer on its compatible major",
+      "matchPackageNames": ["brace-expansion"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
     }
   ],
   "vulnerabilityAlerts": {
