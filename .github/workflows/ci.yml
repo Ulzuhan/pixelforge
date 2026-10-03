@@ -117,4 +117,8 @@ jobs:
           cat /tmp/pixelforge-idp.log || true
       - name: Remove the test container
         if: always()
-        run: docker rm -fv pixelforge-ci || true
+        run: |
+          docker rm -fv pixelforge-ci || true
+          if [ -d "$HOME/.u2net" ]; then
+            sudo chown -R "$(id -u):$(id -g)" "$HOME/.u2net"
+          fi
