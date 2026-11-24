@@ -66,6 +66,7 @@ are not.
 | `PIXELFORGE_SESSION_TTL_HOURS` | Session lifetime, clamped to 1–24 h; default 12. |
 | `PIXELFORGE_PYTHON` | Absolute path to the audited Python interpreter. |
 | `PIXELFORGE_TMP_DIR` | Private temporary workspace; defaults to `.pixelforge-tmp`. |
+| `PIXELFORGE_STATE_DIR` | Writable directory for persisted back-channel logout revocations (`revocaciones.json`). |
 
 `PIXELFORGE_PYTHON` selects the interpreter; without it the development fallback is `$HOME/.pixelforge-venv/bin/python3`. Production should set it explicitly.
 
@@ -84,6 +85,7 @@ whose access token is still alive.
 
 | Route | Auth | Purpose |
 |---|---|---|
+| `GET /api/health` | public | Liveness check (`200 {"ok":true}`, `Cache-Control: no-store`). |
 | `POST /api/removebg` | account | Image in, cut-out PNG out. Takes `model`, `alphaMatting`, `postProcess`. |
 | `POST /api/vectorize` | account | Image in, SVG out. Takes the vtracer quality parameters. |
 
@@ -96,8 +98,12 @@ spends real CPU and real memory on a request.
 |---|---|---|
 | `PIXELFORGE_MAX_PIXELS` | `40000000` | Pixels in the uploaded image, checked from the header before decoding |
 | `PIXELFORGE_MAX_OUTPUT_BYTES` | `268435456` | Maximum generated PNG or SVG before Node reads it |
-| `PIXELFORGE_MAX_JOBS` | `2` | Python processes running at once |
-| `PIXELFORGE_MAX_QUEUE` | `6` | Requests waiting for a turn; beyond that, 503 with `Retry-After` |
+| `PIXELFORGE_MAX_JOBS` | `1` | Python processes running at once across the single shared FIFO queue |
+| `PIXELFORGE_MAX_QUEUE` | `12` | Requests waiting for a turn; beyond that, 503 with `Retry-After` |
+| `PIXELFORGE_MIN_MEM_AVAILABLE_MB` | `1024` | Minimum host `MemAvailable` headroom required before starting a queued job |
+| `PIXELFORGE_MIN_CGROUP_FREE_MB` | `768` | Minimum cgroup free memory headroom required before starting a queued job |
+| `PIXELFORGE_MEM_POLL_MS` | `1500` | Poll interval when deferring a job due to low memory headroom |
+| `PIXELFORGE_MAX_WAIT_MS` | `90000` | Maximum queue/deferral wait before returning `503` with `Retry-After` |
 | `PIXELFORGE_MAX_REQUESTS_PER_HOUR` | `30` | Requests admitted per signed identity and client IP each hour |
 
 The pixel budget is not the same thing as the 50 MB upload cap, and that difference

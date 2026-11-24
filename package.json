@@ -26,12 +26,13 @@
     "test": "./scripts/run-suites.sh",
     "test:auth": "node scripts/test-auth.mjs",
     "test:process": "node scripts/test-process.mjs",
+    "test:turnos": "node scripts/test-turnos.mjs",
     "postbuild": "node scripts/prepare-standalone.mjs",
     "test:backchannel": "bash scripts/test-backchannel.sh"
   },
   "dependencies": {
     "busboy": "^1.6.0",
-    "next": "^16.3.8",
+    "next": "^16.4.6",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },
@@ -42,7 +43,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "^16.3.8",
+    "eslint-config-next": "^16.4.6",
     "tailwindcss": "^4",
     "typescript": "^6.0.3"
   },
