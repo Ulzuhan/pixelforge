@@ -83,6 +83,7 @@ jobs:
           ignore-unfixed: true
           exit-code: 1
         env:
+          TRIVY_PLATFORM: ${{ matrix.platform }}
           TRIVY_TIMEOUT: 20m
 
       - name: Export arch digest
