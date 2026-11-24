@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { megapixeles, pareceImagen } from "@/lib/imagen";
-import { ColaLlena, conTurno } from "@/lib/turnos";
+import { ColaLlena, MemoriaInsuficiente, TrabajoCancelado, conTurno } from "@/lib/turnos";
 import { chmod, writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import { join } from "path";
@@ -83,6 +83,16 @@ async function cleanupOld() {
 }
 
 cleanupOld();
+
+
+async function guardarEntrada(file: File, inputPath: string): Promise<boolean> {
+  const buffer = Buffer.from(await file.arrayBuffer());
+  if (!pareceImagen(buffer)) {
+    return false;
+  }
+  await writeFile(inputPath, buffer, { mode: 0o600 });
+  return true;
+}
 
 export async function POST(request: NextRequest) {
   // Quitar un fondo ejecuta una red neuronal varios segundos: abierto a
@@ -185,17 +195,14 @@ export async function POST(request: NextRequest) {
     const inputPath = join(workDir, `input${ext}`);
     const outputPath = join(workDir, "output.svg");
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    // El tipo declarado y el nombre los escribe quien sube; los primeros bytes,
-    // no. Descartar aquí lo que no es una imagen ahorra arrancar un Python
-    // entero para acabar en un error —1,3 segundos por fichero basura—.
-    if (!pareceImagen(buffer)) {
+    // Validación + escritura a disco antes de entrar en la cola: no se retiene
+    // el Buffer en memoria mientras se espera turno.
+    if (!(await guardarEntrada(file, inputPath))) {
       return NextResponse.json(
         { error: "That file is not an image." },
         { status: 400 }
       );
     }
-    await writeFile(inputPath, buffer, { mode: 0o600 });
 
     // Build vtracer arguments with all quality parameters
     const args = [
@@ -215,11 +222,14 @@ export async function POST(request: NextRequest) {
     // Por turnos: cada uno de estos arranca un Python que puede tardar minutos y
     // comerse más de un giga, y esta máquina tiene cuatro núcleos y otros cuatro
     // servicios encima. Sin cola, seis peticiones eran seis procesos a la vez.
-    const { stderr } = await conTurno(() =>
-      execFileAsync(PYTHON, args, {
-        timeout: 180000,
-        maxBuffer: 10 * 1024 * 1024,
-      })
+    const { stderr } = await conTurno(
+      () =>
+        execFileAsync(PYTHON, args, {
+          timeout: 180000,
+          maxBuffer: 10 * 1024 * 1024,
+          signal: request.signal,
+        }),
+      { signal: request.signal }
     );
 
     if (!existsSync(outputPath)) {
@@ -254,11 +264,20 @@ export async function POST(request: NextRequest) {
     }
     // La cola llena no es un fallo del servidor: es que ahora mismo no hay sitio.
     // Se dice cuándo volver, en vez de un 500 que no explica nada.
+    if (error instanceof MemoriaInsuficiente) {
+      return NextResponse.json(
+        { error: "The server is waiting for memory headroom right now. Try again in a moment." },
+        { status: 503, headers: { "Retry-After": "30" } }
+      );
+    }
     if (error instanceof ColaLlena) {
       return NextResponse.json(
         { error: "The machine is busy right now. Try again in a moment." },
         { status: 503, headers: { "Retry-After": "30" } }
       );
+    }
+    if (error instanceof TrabajoCancelado || (error as { name?: string })?.name === "AbortError" || request.signal.aborted) {
+      return NextResponse.json({ error: "Request cancelled" }, { status: 499 });
     }
     // Una imagen que pide más memoria de la que se le presta tampoco es un fallo
     // del servidor: es una petición que no se acepta, y merece decirlo claro. El

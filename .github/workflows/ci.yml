@@ -38,6 +38,7 @@ jobs:
       - run: npm run lint
 
       - run: npm run build
+      - run: npm run test:turnos
       - run: npm test
 
       # Con un proveedor de mentira que FIRMA de verdad: el aviso de cierre de
