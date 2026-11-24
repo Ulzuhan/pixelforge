@@ -60,8 +60,21 @@ export default async function RootLayout({
   return (
     <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col bg-bg text-ink">
-        <KaiCorpHeader app="Pixelforge">
-          {account && <KaiCorpAccountMenu email={account.email} name={account.name} accountUrl={accountUrl()} />}
+        <KaiCorpHeader
+          app="Pixelforge"
+          current="pixelforge"
+          showSwitcher={Boolean(process.env.KAICORP_FOOTER_LINKS?.trim())}
+        >
+          {account ? (
+            <KaiCorpAccountMenu email={account.email} name={account.name} accountUrl={accountUrl()} />
+          ) : (
+            <>
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+              <a href="/api/auth/login" className="btn btn-secondary btn-sm">
+                Sign in
+              </a>
+            </>
+          )}
         </KaiCorpHeader>
         {children}
         <KaiCorpFooter current="pixelforge" />
