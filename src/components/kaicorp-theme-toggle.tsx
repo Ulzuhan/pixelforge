@@ -16,7 +16,7 @@ function getMeta(): HTMLMetaElement | null {
 function syncFromStorage() {
   const meta = getMeta();
   if (!meta) return;
-  let stored: string | null = null;
+  let stored: string | null;
   try {
     stored = localStorage.getItem(STORAGE_KEY);
   } catch {
@@ -40,7 +40,7 @@ export function KaiCorpThemeToggle() {
   const toggle = () => {
     const meta = getMeta();
     const sys = getSystemScheme();
-    let stored: string | null = null;
+    let stored: string | null;
     try {
       stored = localStorage.getItem(STORAGE_KEY);
     } catch {
