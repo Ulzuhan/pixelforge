@@ -1,11 +1,15 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { KaiCorpFooter } from "@/components/kaicorp-footer";
 import { KaiCorpHeader } from "@/components/kaicorp-header";
 import { KaiCorpAccountMenu } from "@/components/kaicorp-account-menu";
+import { KaiCorpThemeToggle } from "@/components/kaicorp-theme-toggle";
 import { currentAccount } from "@/lib/auth";
 import { accountUrl } from "@/lib/oidc";
+
+const THEME_INIT_SCRIPT = `(function(){try{var s=localStorage.getItem("color-scheme");if(s==="light"||s==="dark"){var m=document.querySelector('meta[name="color-scheme"]');if(m)m.content=s;}}catch(_){}})();`;
 
 // Force dynamic rendering — prevents aggressive caching by Cloudflare
 export const dynamic = "force-dynamic";
@@ -47,6 +51,13 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image" },
 };
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f8fafc" },
+    { media: "(prefers-color-scheme: dark)", color: "#070a12" },
+  ],
+};
+
 /**
  * La cuenta se resuelve aquí: el menú de cuenta es el cromado común de las
  * cinco aplicaciones, en el mismo sitio en todas.
@@ -56,25 +67,34 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const account = await currentAccount();
+  const [account, reqHeaders] = await Promise.all([currentAccount(), headers()]);
+  const nonce = reqHeaders.get("x-nonce") ?? undefined;
   return (
     <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable} h-full antialiased`}>
+      <head>
+        <meta name="color-scheme" content="light dark" />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="flex min-h-full flex-col bg-bg text-ink">
         <KaiCorpHeader
           app="Pixelforge"
           current="pixelforge"
           showSwitcher={Boolean(process.env.KAICORP_FOOTER_LINKS?.trim())}
+          signedIn={Boolean(account)}
         >
-          {account ? (
-            <KaiCorpAccountMenu email={account.email} name={account.name} accountUrl={accountUrl()} />
-          ) : (
-            <>
-              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-              <a href="/api/auth/login" className="btn btn-secondary btn-sm">
-                Sign in
-              </a>
-            </>
-          )}
+          <div className="flex items-center gap-2">
+            {account ? (
+              <KaiCorpAccountMenu email={account.email} name={account.name} accountUrl={accountUrl()} />
+            ) : (
+              <>
+                {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                <a href="/api/auth/login" className="btn btn-secondary btn-sm">
+                  Sign in
+                </a>
+              </>
+            )}
+            <KaiCorpThemeToggle />
+          </div>
         </KaiCorpHeader>
         {children}
         <KaiCorpFooter current="pixelforge" />
