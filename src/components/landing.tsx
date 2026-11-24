@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LandingSession } from "./landing-session";
 import {
   IconArrow,
   IconArrowsH,
@@ -23,7 +24,13 @@ import {
  * él no hay botón de alta y entrar pasa a ser la acción principal, que es la
  * única que lleva a alguna parte.
  */
-export function Landing({ enrollUrl }: { enrollUrl?: string | null }) {
+export function Landing({
+  enrollUrl,
+  accountSessionUrl = null,
+}: {
+  enrollUrl?: string | null;
+  accountSessionUrl?: string | null;
+}) {
   return (
     <main className="relative flex-1 overflow-x-clip">
       <div className="landing-bg" aria-hidden />
@@ -44,19 +51,21 @@ export function Landing({ enrollUrl }: { enrollUrl?: string | null }) {
             images to somebody else&apos;s server. This one runs on our machine and keeps nothing.
           </p>
 
-          <div className="rise rise-3 mt-8 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
+          <LandingSession sessionUrl={accountSessionUrl} loginHref="/api/auth/login">
+            <div className="rise rise-3 mt-8 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
+              {enrollUrl && (
+                <a href={enrollUrl} className="btn btn-primary btn-lg">
+                  Request an account <IconArrow />
+                </a>
+              )}
+              <Link href="/api/auth/login" prefetch={false} className={`btn btn-lg ${enrollUrl ? "btn-secondary" : "btn-primary"}`}>
+                Sign in
+              </Link>
+            </div>
             {enrollUrl && (
-              <a href={enrollUrl} className="btn btn-primary btn-lg">
-                Request an account <IconArrow />
-              </a>
+              <p className="rise rise-4 mt-3 text-xs text-ink-3">Accounts are approved by hand. That same button is where you ask for one.</p>
             )}
-            <Link href="/api/auth/login" prefetch={false} className={`btn btn-lg ${enrollUrl ? "btn-secondary" : "btn-primary"}`}>
-              Sign in
-            </Link>
-          </div>
-          {enrollUrl && (
-            <p className="rise rise-4 mt-3 text-xs text-ink-3">Accounts are approved by hand. That same button is where you ask for one.</p>
-          )}
+          </LandingSession>
 
           <ul className="rise rise-4 mt-10 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-ink-2 lg:justify-start">
             {["Full resolution", "No watermark", "Nothing kept"].map((t) => (
