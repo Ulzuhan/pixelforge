@@ -13,46 +13,167 @@
    ámbar-fuego: es una forja.
    ══════════════════════════════════════════════════════════════════════ */
 :root {
-  color-scheme: dark;
+  color-scheme: light dark;
 
-  --bg: #070a12;
-  --bg-2: #0a0e18;
-  --surface: #0f1421;
-  --surface-2: #151b2b;
-  --surface-3: #1c2436;
-  --line: #1d2637;
-  --line-2: #2b374d;
+  --bg-dark: #070a12;
+  --bg-light: #f8fafc;
+  --bg-2-dark: #0a0e18;
+  --bg-2-light: #f1f5f9;
+  --surface-dark: #0f1421;
+  --surface-light: #ffffff;
+  --surface-2-dark: #151b2b;
+  --surface-2-light: #f1f5f9;
+  --surface-3-dark: #1c2436;
+  --surface-3-light: #e2e8f0;
+  --line-dark: #1d2637;
+  --line-light: #e2e8f0;
+  --line-2-dark: #2b374d;
+  --line-2-light: #cbd5e1;
 
-  --ink: #eef2f8;
-  --ink-2: #a9b4c7;
-  --ink-3: #6f7c94;
+  --ink-dark: #eef2f8;
+  --ink-light: #0f172a;
+  --ink-2-dark: #a9b4c7;
+  --ink-2-light: #475569;
+  --ink-3-dark: #6f7c94;
+  --ink-3-light: #64748b;
 
-  --accent: #ff9a3c;
-  --accent-2: #ffc247;
-  --accent-3: #ff6a3d;
-  --accent-ink: #1a0c02;
-  --accent-soft: rgba(255, 154, 60, 0.14);
-  --accent-glow: rgba(255, 154, 60, 0.35);
+  --accent-dark: #ff9a3c;
+  --accent-light: #c2410c;
+  --accent-2-dark: #ffc247;
+  --accent-2-light: #ea580c;
+  --accent-3-dark: #ff6a3d;
+  --accent-3-light: #b91c1c;
+  --accent-ink-dark: #1a0c02;
+  --accent-ink-light: #ffffff;
+  --accent-soft-dark: rgba(255, 154, 60, 0.14);
+  --accent-soft-light: rgba(194, 65, 12, 0.11);
+  --accent-glow-dark: rgba(255, 154, 60, 0.35);
+  --accent-glow-light: rgba(194, 65, 12, 0.25);
 
-  --ok: #43d787;
-  --warn: #ffc247;
-  --danger: #ff6b6b;
-  --info: #45e0f5;
+  --ok-dark: #43d787;
+  --ok-light: #15803d;
+  --warn-dark: #ffc247;
+  --warn-light: #b45309;
+  --danger-dark: #ff6b6b;
+  --danger-light: #dc2626;
+  --info-dark: #45e0f5;
+  --info-light: #0369a1;
 
-  --checker-a: #1a2131;
-  --checker-b: #10151f;
+  --checker-a-dark: #1a2131;
+  --checker-a-light: #e2e8f0;
+  --checker-b-dark: #10151f;
+  --checker-b-light: #ffffff;
+
+  --bg: var(--bg-light);
+  --bg-2: var(--bg-2-light);
+  --surface: var(--surface-light);
+  --surface-2: var(--surface-2-light);
+  --surface-3: var(--surface-3-light);
+  --line: var(--line-light);
+  --line-2: var(--line-2-light);
+  --ink: var(--ink-light);
+  --ink-2: var(--ink-2-light);
+  --ink-3: var(--ink-3-light);
+  --accent: var(--accent-light);
+  --accent-2: var(--accent-2-light);
+  --accent-3: var(--accent-3-light);
+  --accent-ink: var(--accent-ink-light);
+  --accent-soft: var(--accent-soft-light);
+  --accent-glow: var(--accent-glow-light);
+  --ok: var(--ok-light);
+  --warn: var(--warn-light);
+  --danger: var(--danger-light);
+  --info: var(--info-light);
+  --checker-a: var(--checker-a-light);
+  --checker-b: var(--checker-b-light);
 
   --radius-sm: 10px;
   --radius: 14px;
   --radius-lg: 20px;
   --radius-xl: 28px;
 
-  --shadow-1: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 10px 30px -12px rgba(0, 0, 0, 0.6);
-  --shadow-2: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 30px 80px -30px rgba(0, 0, 0, 0.75);
+  --shadow-1: 0 1px 2px rgba(15, 23, 42, 0.06), 0 10px 26px -14px rgba(15, 23, 42, 0.14);
+  --shadow-2: 0 2px 6px rgba(15, 23, 42, 0.06), 0 26px 60px -28px rgba(15, 23, 42, 0.2);
   --shadow-accent: 0 12px 40px -10px var(--accent-glow);
+  --kbd-shadow: 0 1px 0 rgba(15, 23, 42, 0.12);
+  --seg-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  --panel-highlight: rgba(15, 23, 42, 0.015);
+
+  @media (prefers-color-scheme: dark) {
+    --bg: var(--bg-dark);
+    --bg-2: var(--bg-2-dark);
+    --surface: var(--surface-dark);
+    --surface-2: var(--surface-2-dark);
+    --surface-3: var(--surface-3-dark);
+    --line: var(--line-dark);
+    --line-2: var(--line-2-dark);
+    --ink: var(--ink-dark);
+    --ink-2: var(--ink-2-dark);
+    --ink-3: var(--ink-3-dark);
+    --accent: var(--accent-dark);
+    --accent-2: var(--accent-2-dark);
+    --accent-3: var(--accent-3-dark);
+    --accent-ink: var(--accent-ink-dark);
+    --accent-soft: var(--accent-soft-dark);
+    --accent-glow: var(--accent-glow-dark);
+    --ok: var(--ok-dark);
+    --warn: var(--warn-dark);
+    --danger: var(--danger-dark);
+    --info: var(--info-dark);
+    --checker-a: var(--checker-a-dark);
+    --checker-b: var(--checker-b-dark);
+    --shadow-1: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 10px 30px -12px rgba(0, 0, 0, 0.6);
+    --shadow-2: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 30px 80px -30px rgba(0, 0, 0, 0.75);
+    --kbd-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+    --seg-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 6px 16px -8px rgba(0, 0, 0, 0.8);
+    --panel-highlight: rgba(255, 255, 255, 0.025);
+  }
+
+  @supports (color: light-dark(white, black)) {
+    --bg: light-dark(var(--bg-light), var(--bg-dark));
+    --bg-2: light-dark(var(--bg-2-light), var(--bg-2-dark));
+    --surface: light-dark(var(--surface-light), var(--surface-dark));
+    --surface-2: light-dark(var(--surface-2-light), var(--surface-2-dark));
+    --surface-3: light-dark(var(--surface-3-light), var(--surface-3-dark));
+    --line: light-dark(var(--line-light), var(--line-dark));
+    --line-2: light-dark(var(--line-2-light), var(--line-2-dark));
+    --ink: light-dark(var(--ink-light), var(--ink-dark));
+    --ink-2: light-dark(var(--ink-2-light), var(--ink-2-dark));
+    --ink-3: light-dark(var(--ink-3-light), var(--ink-3-dark));
+    --accent: light-dark(var(--accent-light), var(--accent-dark));
+    --accent-2: light-dark(var(--accent-2-light), var(--accent-2-dark));
+    --accent-3: light-dark(var(--accent-3-light), var(--accent-3-dark));
+    --accent-ink: light-dark(var(--accent-ink-light), var(--accent-ink-dark));
+    --accent-soft: light-dark(var(--accent-soft-light), var(--accent-soft-dark));
+    --accent-glow: light-dark(var(--accent-glow-light), var(--accent-glow-dark));
+    --ok: light-dark(var(--ok-light), var(--ok-dark));
+    --warn: light-dark(var(--warn-light), var(--warn-dark));
+    --danger: light-dark(var(--danger-light), var(--danger-dark));
+    --info: light-dark(var(--info-light), var(--info-dark));
+    --checker-a: light-dark(var(--checker-a-light), var(--checker-a-dark));
+    --checker-b: light-dark(var(--checker-b-light), var(--checker-b-dark));
+  }
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+:root:has(> head > meta[name="color-scheme"][content="dark"]) {
+  color-scheme: dark;
+  --shadow-1: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 10px 30px -12px rgba(0, 0, 0, 0.6);
+  --shadow-2: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 30px 80px -30px rgba(0, 0, 0, 0.75);
+  --kbd-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+  --seg-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 6px 16px -8px rgba(0, 0, 0, 0.8);
+  --panel-highlight: rgba(255, 255, 255, 0.025);
+}
+
+:root:has(> head > meta[name="color-scheme"][content="light"]) {
+  color-scheme: light;
+  --shadow-1: 0 1px 2px rgba(15, 23, 42, 0.06), 0 10px 26px -14px rgba(15, 23, 42, 0.14);
+  --shadow-2: 0 2px 6px rgba(15, 23, 42, 0.06), 0 26px 60px -28px rgba(15, 23, 42, 0.2);
+  --kbd-shadow: 0 1px 0 rgba(15, 23, 42, 0.12);
+  --seg-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  --panel-highlight: rgba(15, 23, 42, 0.015);
 }
 
 /* Tailwind v4 sólo genera utilidades para lo que declara @theme. */
@@ -152,7 +273,7 @@ h1, h2, h3, .display {
 
 /* ── Paneles ─────────────────────────────────────────────────────────── */
 .panel {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 40%), var(--surface);
+  background: linear-gradient(180deg, var(--panel-highlight), transparent 40%), var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-1);
@@ -182,7 +303,7 @@ h1, h2, h3, .display {
   border: 1px solid var(--line-2);
   background: var(--surface-2);
   color: var(--ink-2);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+  box-shadow: var(--kbd-shadow);
 }
 
 /* ── Botones ─────────────────────────────────────────────────────────── */
@@ -276,7 +397,7 @@ h1, h2, h3, .display {
 .seg > [role="radio"][aria-checked="true"] {
   color: var(--ink);
   background: var(--surface-3);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 6px 16px -8px rgba(0, 0, 0, 0.8);
+  box-shadow: var(--seg-shadow);
 }
 .seg > [role="radio"][aria-checked="true"] svg { color: var(--accent); }
 
