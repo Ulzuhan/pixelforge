@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import { accountSessionUrl, oidcConfig, originOf } from "@/lib/oidc";
 
 export function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const development = process.env.NODE_ENV !== "production";
+  const sessionOrigin = oidcConfig() ? originOf(accountSessionUrl()) : null;
+  const connectSrc = sessionOrigin ? `connect-src 'self' ${sessionOrigin}` : "connect-src 'self'";
   const csp = [
     "default-src 'self'",
     `script-src 'nonce-${nonce}' 'strict-dynamic'${development ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' blob: data:",
-    "connect-src 'self'",
+    connectSrc,
     "font-src 'self'",
     "object-src 'none'",
     "base-uri 'none'",

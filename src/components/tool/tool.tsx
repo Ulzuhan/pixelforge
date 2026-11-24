@@ -313,7 +313,11 @@ export function Tool() {
                       <p className="mt-1 text-sm leading-relaxed text-ink-2">{error.message}</p>
                       <div className="mt-3 flex flex-wrap gap-2">
                         {error.signIn ? (
-                          <a href="/api/auth/login" className="btn btn-primary btn-sm">Sign in</a>
+                          <>
+                            {/* Route handler OIDC redirect: keep native <a> navigation */}
+                            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                            <a href="/api/auth/login" className="btn btn-primary btn-sm">Sign in</a>
+                          </>
                         ) : (
                           <Button size="sm" variant="primary" disabled={retryIn > 0 || !input} onClick={runJob}>
                             {retryIn > 0 ? `Retry in ${retryIn} s` : "Retry"}

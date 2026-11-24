@@ -317,6 +317,20 @@ export function accountUrl(): string | null {
   return enlaceExterno(process.env.PIXELFORGE_ACCOUNT_URL);
 }
 
+export function accountSessionUrl(): string | null {
+  return enlaceExterno(process.env.PIXELFORGE_ACCOUNT_SESSION_URL);
+}
+
+export function originOf(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    return url.origin === "null" ? null : url.origin;
+  } catch {
+    return null;
+  }
+}
+
 export function enrollUrl(): string | null {
   return enlaceExterno(process.env.PIXELFORGE_ENROLL_URL);
 }

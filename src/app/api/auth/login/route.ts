@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { currentAccount } from "@/lib/auth";
 import { safeNext, authorizeUrl, challengeFor, newVerifier, oidcConfig } from "@/lib/oidc";
 
 /**
- * GET /api/auth/login — starts signing in against Authentik.
+ * GET /api/auth/login — starts signing in against the provider.
  *
  * The PKCE verifier, the anti-CSRF state and where to return to are kept in a
  * short-lived cookie. A cookie rather than server state because there is no
@@ -11,6 +12,12 @@ import { safeNext, authorizeUrl, challengeFor, newVerifier, oidcConfig } from "@
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  const next = safeNext(request.nextUrl.searchParams.get("next"));
+
+  if (await currentAccount()) {
+    return new NextResponse(null, { status: 302, headers: { Location: next } });
+  }
+
   const cfg = oidcConfig();
   if (!cfg) {
     return NextResponse.json(
@@ -21,10 +28,6 @@ export async function GET(request: NextRequest) {
 
   const verifier = newVerifier();
   const state = newVerifier();
-
-  // Internal paths only: without this, a link carrying ?next=https://elsewhere
-  // would turn signing in into a redirector to wherever an attacker wanted.
-  const next = safeNext(request.nextUrl.searchParams.get("next"));
 
   const response = NextResponse.redirect(
     await authorizeUrl(cfg, { state, codeChallenge: challengeFor(verifier) })
