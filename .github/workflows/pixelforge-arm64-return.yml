@@ -1,0 +1,32 @@
+name: PixelForge · signed v0.8.1 ARM64 return rehearsal
+
+on:
+  pull_request:
+    paths:
+      - deploy/rehearsal/**
+      - .github/workflows/pixelforge-arm64-return.yml
+
+permissions:
+  contents: read
+
+jobs:
+  return-arm64-signed-081:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/pixelforge-arm64-return-proof-20261127'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      attestations: read
+      packages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify signed release and rehearse exact ARM64 return
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          bash deploy/rehearsal/rehearsal.sh exact \
+            sha256:330a804af61e9c81a337e5af6931cfb46a414acc9481caecf1b6f61dcea84862 \
+            f394518d91028923b383d0ebba21ba85b6bae582
