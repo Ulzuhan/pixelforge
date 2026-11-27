@@ -1,0 +1,47 @@
+name: PixelForge · ARM64 return rehearsal only
+
+on:
+  pull_request:
+    paths:
+      - deploy/rehearsal/**
+      - .github/workflows/pixelforge-arm64-return.yml
+
+permissions:
+  contents: read
+
+jobs:
+  return-arm64:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/pixelforge-arm64-return-proof-20261127'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 22
+    permissions:
+      contents: read
+      attestations: read
+      packages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: 61cd3e4c9beeafb6b56e835137ee200fc7fa9fe4
+          path: .candidate-src
+          persist-credentials: false
+      - name: Build exact reviewed code on ARM64 without publishing
+        id: build
+        run: |
+          set -euo pipefail
+          revision=$(git -C .candidate-src rev-parse HEAD)
+          [[ "$revision" == 61cd3e4c9beeafb6b56e835137ee200fc7fa9fe4 ]]
+          docker build --platform linux/arm64 --pull --label "org.opencontainers.image.revision=$revision" \
+            --iidfile "$RUNNER_TEMP/pixelforge-arm64-id" .candidate-src
+          id=$(cat "$RUNNER_TEMP/pixelforge-arm64-id")
+          [[ "$id" =~ ^sha256:[0-9a-f]{64}$ ]]
+      - name: Rehearse attested prior to unsigned review candidate to the same prior
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          bash deploy/rehearsal/rehearsal.sh review \
+            "$(cat "$RUNNER_TEMP/pixelforge-arm64-id")" \
+            61cd3e4c9beeafb6b56e835137ee200fc7fa9fe4
