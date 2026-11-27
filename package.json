@@ -26,6 +26,7 @@
     "test": "./scripts/run-suites.sh",
     "test:auth": "node scripts/test-auth.mjs",
     "test:process": "node scripts/test-process.mjs",
+    "test:drain": "node scripts/test-drain.mjs",
     "test:turnos": "node scripts/test-turnos.mjs",
     "postbuild": "node scripts/prepare-standalone.mjs",
     "test:backchannel": "bash scripts/test-backchannel.sh"
