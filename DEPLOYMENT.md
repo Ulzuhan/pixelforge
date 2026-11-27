@@ -29,6 +29,48 @@ location / {
 
 La aplicación también corta multipart en streaming a 50 MiB; el límite del proxy protege recursos antes de que Node reciba la petición.
 
+## Drenaje privado antes de parar el contenedor
+
+No hay endpoint HTTP de control. La imagen usa un socket Unix `0600` dentro
+de un directorio `0700` nuevo en el tmpfs privado `/tmp`. No expongas ni
+compartas ese directorio. En un standalone manual es optativo:
+`PIXELFORGE_DRAIN_DIR` debe apuntar a un directorio absoluto aún inexistente,
+en un padre privado o con sticky bit.
+
+El operador coordina **en exclusiva** la ventana y actúa sobre el ID completo
+del contenedor exacto, no sobre un nombre reutilizable. Genera un token de 32
+hexadecimales con `openssl rand -hex 16`. Desde el host, sustituye `"$cid"` por
+esa identidad verificada:
+
+```sh
+podman exec "$cid" node scripts/drain-control.mjs begin "$token"
+podman exec "$cid" node scripts/drain-control.mjs status "$token"
+```
+
+`begin` cierra la admisión en ambas rutas antes de leer el multipart; rechaza
+nuevos trabajos con 503/Retry-After sin publicar contadores. Los admitidos,
+incluidos los que aún reciben la imagen, conservan su turno; su contador no
+baja hasta que se prepara la respuesta y acaba la limpieza. El control no
+elimina ni altera trabajos. Conserva `instancia` de la **primera** respuesta:
+`status` debe devolver esa misma instancia, `cerrado=true`, `listo=true` y cero
+en `admitidas`, `activos` y `esperando`. Verifica otra vez ID, estado y sesión
+justo antes de parar. Coordina el cierre de conexiones con el proxy: el dato
+privado no confirma que una respuesta preparada ya se haya enviado al cliente.
+
+Usa un plazo finito. Ante error, timeout, proceso cambiado o socket ausente
+**no pares**; comprueba el origen y abandona el corte. Para cancelar en la
+misma instancia y bajo la misma exclusión, vuelve a abrir con
+`podman exec "$cid" node scripts/drain-control.mjs resume "$token"`. No emitas
+`begin` otra vez para ocultar un reinicio ni compartas el token en logs. El
+token equivocado no permite tomar o reabrir una operación existente. No
+automatices la primera transición desde una versión sin este mecanismo:
+requiere ventana supervisada con corte de admisión externo y política
+explícita para trabajos que no se pueden medir.
+
+La prueba `npm run test:drain` usa el servidor construido, dos peticiones
+autenticadas ficticias, un procesador sin modelos y un socket local. Comprueba
+drenaje/retorno a servicio, no inferencia ni un corte ARM64 de producción.
+
 ## systemd
 
 Instala el standalone en `/opt/pixelforge`, el venv en `/opt/pixelforge-venv`, crea el usuario `pixelforge` y los directorios `/var/lib/pixelforge/{tmp,models}` con modo `0700`. Copia `deploy/pixelforge.service`, coloca secretos con permisos `0600` en `/etc/pixelforge.env`, ejecuta `systemctl daemon-reload` y habilita la unidad.

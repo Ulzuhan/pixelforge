@@ -1,6 +1,6 @@
 {
   "name": "pixelforge",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Background removal and image vectorisation on your own hardware: rembg and vtracer behind a Next.js front, with strict limits on every job.",
   "license": "MIT",
   "author": "Ulzuhan",
@@ -26,6 +26,7 @@
     "test": "./scripts/run-suites.sh",
     "test:auth": "node scripts/test-auth.mjs",
     "test:process": "node scripts/test-process.mjs",
+    "test:drain": "node scripts/test-drain.mjs",
     "test:turnos": "node scripts/test-turnos.mjs",
     "postbuild": "node scripts/prepare-standalone.mjs",
     "test:backchannel": "bash scripts/test-backchannel.sh"

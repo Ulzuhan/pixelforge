@@ -10,7 +10,7 @@ COPY --from=build /usr/local/bin/node /usr/local/bin/node
 ENV NODE_ENV=production HOSTNAME=0.0.0.0 PORT=3458 \
     PIXELFORGE_PYTHON=/opt/venv/bin/python3 PIXELFORGE_TMP_DIR=/work \
     U2NET_HOME=/models \
-    NUMBA_CACHE_DIR=/work/numba-cache
+    NUMBA_CACHE_DIR=/work/numba-cache PIXELFORGE_DRAIN_DIR=/tmp/pixelforge-drain
 # NUMBA_CACHE_DIR: numba (pymatting, que rembg importa al cargar) compila con
 # cache=True y quiere escribir junto al código del venv — imposible con la raíz
 # de solo lectura: todos los removebg daban 500, medido. Al tmpfs de /work; se
@@ -47,6 +47,7 @@ COPY --from=build --chown=pixelforge:pixelforge /app/.next/static ./.next/static
 COPY --from=build --chown=pixelforge:pixelforge /app/public ./public
 COPY --from=build --chown=pixelforge:pixelforge /app/python ./python
 COPY --from=build --chown=pixelforge:pixelforge /app/scripts/container-entrypoint.mjs ./scripts/container-entrypoint.mjs
+COPY --chown=pixelforge:pixelforge scripts/drain-control.mjs ./scripts/drain-control.mjs
 USER pixelforge
 EXPOSE 3458
 # start-period largo a conciencia: un primer arranque con el volumen de modelos

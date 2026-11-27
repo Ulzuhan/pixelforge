@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { megapixeles, pareceImagen } from "@/lib/imagen";
 import { ColaLlena, MemoriaInsuficiente, TrabajoCancelado, conTurno } from "@/lib/turnos";
+import { admitir } from "@/lib/drain-state";
 import { chmod, writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import { join } from "path";
@@ -113,6 +114,12 @@ export async function POST(request: NextRequest) {
   // verlo: antes, si el proceso de Python fallaba o agotaba los 3 minutos, la
   // ejecución saltaba al catch y la carpeta —con la imagen del usuario, hasta
   // 50 MB— se quedaba en disco para siempre.
+  const terminar = admitir();
+  if (!terminar) {
+    return NextResponse.json({ error: "Temporarily unavailable" }, {
+      status: 503, headers: { "Retry-After": "30" }
+    });
+  }
   let workDir: string | null = null;
 
   try {
@@ -311,5 +318,6 @@ export async function POST(request: NextRequest) {
         await rm(workDir, { recursive: true, force: true });
       } catch {}
     }
+    terminar();
   }
 }

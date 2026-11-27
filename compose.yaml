@@ -12,7 +12,7 @@ services:
       - pixelforge-models:/models
     tmpfs:
       - /work:rw,noexec,nosuid,nodev,size=512m,mode=0700,uid=10001,gid=10001
-      - /tmp:rw,noexec,nosuid,nodev,size=32m
+      - /tmp:rw,noexec,nosuid,nodev,size=32m,mode=0700,uid=10001,gid=10001
     read_only: true
     cap_drop: [ALL]
     security_opt:

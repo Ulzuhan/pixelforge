@@ -39,6 +39,7 @@ jobs:
 
       - run: npm run build
       - run: npm run test:turnos
+      - run: npm run test:drain
       - run: npm test
 
       # Con un proveedor de mentira que FIRMA de verdad: el aviso de cierre de
@@ -92,7 +93,9 @@ jobs:
           mkdir -p "$HOME/.u2net"
           sudo chown -R 10001:10001 "$HOME/.u2net"
           docker run -d --name pixelforge-ci --network host --read-only \
-            --tmpfs /work:uid=10001,gid=10001,mode=700 -v "$HOME/.u2net:/models" \
+            --tmpfs /work:uid=10001,gid=10001,mode=700 \
+            --tmpfs /tmp:rw,noexec,nosuid,nodev,size=32m,uid=10001,gid=10001,mode=0700 \
+            -v "$HOME/.u2net:/models" \
             -e HOSTNAME=127.0.0.1 -e PORT=3991 -e PIXELFORGE_SESSION_SECRET \
             -e PIXELFORGE_MAX_JOBS=2 -e PIXELFORGE_MAX_QUEUE=1 \
             -e PIXELFORGE_MAX_REQUESTS_PER_HOUR=1000 \
@@ -109,6 +112,11 @@ jobs:
           curl -sf "$BASE/" >/dev/null
           docker exec pixelforge-ci node --version
           docker exec pixelforge-ci /opt/venv/bin/python3 --version
+          lease="$(openssl rand -hex 16)"
+          docker exec pixelforge-ci node scripts/drain-control.mjs begin "$lease" |
+            jq -e '.ok and .cerrado and .listo and .admitidas == 0 and .activos == 0 and .esperando == 0' >/dev/null
+          docker exec pixelforge-ci node scripts/drain-control.mjs resume "$lease" |
+            jq -e '.ok and (.cerrado | not)' >/dev/null
           node scripts/test-auth.mjs
           node scripts/test-process.mjs
       - name: Runtime logs on failure
